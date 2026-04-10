@@ -34,6 +34,21 @@ class Character extends Bopper
 	 */
 	public var curCharacter:String = DEFAULT_CHARACTER;
 	
+	public var pastCharacter:String = DEFAULT_CHARACTER;
+	
+	public var daZoom(default, set):Float = 1;
+	
+	function set_daZoom(value:Float):Float
+	{
+		daZoom = value;
+		var daValue:Float = value * jsonScale;
+		this.scale.set(daValue, daValue);
+		
+		// trace("fucked with");
+		
+		return value;
+	}
+	
 	public var holdTimer:Float = 0;
 	
 	public var animTimer:Float = 0;
@@ -144,12 +159,20 @@ class Character extends Bopper
 	 */
 	public var healthColorArray:Array<Int> = [255, 0, 0];
 	
+	public var iconColor:String;
+	
+	public var curColor:FlxColor = 0xFFFFFFFF; // i was thinking about using this but nvm
+	
+	public var hasMissAnimations:Bool = false;
+	
 	public var healthColour:Int = FlxColor.RED;
 	
 	/**
 	 *	If enabled, the character's singing animation will stop at the last frame while holding a sustain note
 	 */
 	public var vSliceSustains = false;
+	
+	public var doMissThing:Bool = false;
 	
 	public function new(x:Float = 0, y:Float = 0, character:String = 'bf', isPlayer:Bool = false)
 	{
@@ -285,7 +308,7 @@ class Character extends Bopper
 		{
 			flipX = !flipX;
 			// Doesn't flip for BF, since his are already in the right place???
-			if (!predictCharacterIsPlayer(curCharacter) && !isPsychPlayer) flipAnims();
+			if (!curCharacter.startsWith('bf') && isPsychPlayer) flipAnims();
 		}
 		
 		if (!isPlayer)
@@ -293,7 +316,7 @@ class Character extends Bopper
 			if (curCharacter.startsWith('bf') || isPsychPlayer) flipAnims();
 		}
 		
-		if (isPlayer && !curCharacter.startsWith('bf') && !itHasPlayerOfs) flipAnims(); // fuck it.
+		// if (isPlayer && !curCharacter.startsWith('bf') && !itHasPlayerOfs) flipAnims(); // fuck it.
 	}
 	
 	@:allow(states.editors.CharacterEditorState)
@@ -390,12 +413,65 @@ class Character extends Bopper
 		super.dance(forced);
 	}
 	
-	override function playAnim(animToPlay:String, isForced:Bool = false, isReversed:Bool = false, frame:Int = 0)
+	var missed:Bool = false;
+	
+	override public function playAnim(AnimName:String, Force:Bool = false, Reversed:Bool = false, Frame:Int = 0):Void
 	{
 		specialAnim = false;
-		animToPlay += animSuffix;
+		var useFallbackMiss:Bool = false;
 		
-		super.playAnim(animToPlay, isForced, isReversed, frame);
+		// Reimplemented the fall back for the alt sprites
+		if (AnimName.endsWith('alt') && !hasAnim(AnimName))
+		{
+			AnimName = AnimName.split('-')[0];
+		}
+		
+		if (AnimName.endsWith('miss') && !hasAnim(AnimName))
+		{
+			AnimName = AnimName.substr(0, AnimName.length - 4);
+			useFallbackMiss = true;
+		}
+		
+		// trace(anim.exists(AnimName));
+		
+		animation.play(AnimName, Force, Reversed, Frame);
+		_lastPlayedAnimation = AnimName;
+		
+		if (hasAnim(AnimName))
+		{
+			var daOffset = animOffsets.get(AnimName);
+			if (isPlayer) daOffset = animPlayerOffsets.get(AnimName);
+			
+			if ((animOffsets.exists(AnimName) && !isPlayer) || (animPlayerOffsets.exists(AnimName) && isPlayer)) offset.set(daOffset[0] * daZoom, daOffset[1] * daZoom);
+			else offset.set(0, 0);
+		}
+		// else offset.set(0, 0);
+		
+		if (curCharacter.startsWith('gf-') || curCharacter == 'gf')
+		{
+			if (AnimName == 'singLEFT') danced = true;
+			else if (AnimName == 'singRIGHT') danced = false;
+			
+			if (AnimName == 'singUP' || AnimName == 'singDOWN') danced = !danced;
+		}
+		
+		if (useFallbackMiss)
+		{
+			var realCurColor:FlxColor = curColor;
+			color = CoolUtil.blendColors(curColor, 0xFFCFAFFF);
+			curColor = realCurColor;
+		}
+		else if (color != curColor && !hasMissAnimations)
+		{
+			color = curColor;
+		}
+		
+		super.playAnim(AnimName, Force, Reversed, Frame);
+	}
+	
+	public function quickAnimAdd(name:String, anim:String)
+	{
+		addAnimByPrefix(name, anim, 24, false);
 	}
 	
 	override function onBeatHit(beat:Int)
@@ -479,51 +555,59 @@ class Character extends Bopper
 	
 	public function flipAnims()
 	{
-		// rewrote it
+		// Use 'animations' instead of 'animationsArray' as it's the one populated in loadFile
+		if (animations == null || animations.length == 0) return;
+		
 		if (isAnimateAtlas)
 		{
-			/*
-				for (anim in animationsArray)
-				{
-					if (anim.anim.contains("singRIGHT"))
-					{
-						var animSplit:Array<String> = anim.anim.split('singRIGHT');
-						var suffix = animSplit[1];
-						
-						var singRightName = 'singRIGHT' + suffix;
-						var singLeftName = 'singLEFT' + suffix;
-						
-						@:privateAccess {
-							var oldRightAnim = this.anim._animations.get(singRightName);
-							var oldLeftAnim = this.anim._animations.get(singLeftName);
-							
-							if (oldRightAnim != null && oldLeftAnim != null)
-							{
-								this.anim._animations.set(singRightName, oldLeftAnim);
-								this.anim._animations.set(singLeftName, oldRightAnim);
-							}
-						}
-					}
-				}
-			 */
-		}
-		else
-		{
-			for (anim in animationsArray)
+			for (anim in animations)
 			{
 				if (anim.anim.contains("singRIGHT"))
 				{
-					var animSplit:Array<String> = anim.anim.split('singRIGHT');
+					var suffix = anim.anim.split('singRIGHT')[1];
+					var singRightName = 'singRIGHT' + suffix;
+					var singLeftName = 'singLEFT' + suffix;
 					
-					if (animation.getByName('singRIGHT' + animSplit[1]) != null && animation.getByName('singLEFT' + animSplit[1]) != null)
-					{
-						var oldRight = animation.getByName('singRIGHT' + animSplit[1]).frames;
-						animation.getByName('singRIGHT' + animSplit[1]).frames = animation.getByName('singLEFT' + animSplit[1]).frames;
-						animation.getByName('singLEFT' + animSplit[1]).frames = oldRight;
+					@:privateAccess {
+						// FlxAnimate uses a different internal map structure
+						var oldRightAnim = this.anim._animations.get(singRightName);
+						var oldLeftAnim = this.anim._animations.get(singLeftName);
+						
+						if (oldRightAnim != null && oldLeftAnim != null)
+						{
+							this.anim._animations.set(singRightName, oldLeftAnim);
+							this.anim._animations.set(singLeftName, oldRightAnim);
+						}
 					}
 				}
 			}
 		}
+		else
+		{
+			for (anim in animations)
+			{
+				if (anim.anim.contains("singRIGHT"))
+				{
+					var suffix = anim.anim.split('singRIGHT')[1];
+					var rightAnim = 'singRIGHT' + suffix;
+					var leftAnim = 'singLEFT' + suffix;
+					
+					if (animation.getByName(rightAnim) != null && animation.getByName(leftAnim) != null)
+					{
+						var oldRightFrames = animation.getByName(rightAnim).frames;
+						animation.getByName(rightAnim).frames = animation.getByName(leftAnim).frames;
+						animation.getByName(leftAnim).frames = oldRightFrames;
+					}
+				}
+			}
+		}
+	}
+	
+	var _lastPlayedAnimation:String;
+	
+	inline public function getAnimationName():String
+	{
+		return _lastPlayedAnimation;
 	}
 	
 	override function destroy()
