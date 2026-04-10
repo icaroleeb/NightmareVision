@@ -555,12 +555,12 @@ class PlayState extends MusicBeatState
 		return (cpuControlled = val);
 	}
 	
-	function applyStageData(file:Null<StageFile>):Void
+	function applyStageData(file:Null<StageFile>, isChangeStage:Bool = false):Void
 	{
 		if (file == null) return;
 		
 		defaultCamZoom = file.defaultZoom;
-		FlxG.camera.zoom = file.defaultZoom;
+		if (isChangeStage) FlxG.camera.zoom = file.defaultZoom;
 		
 		BF_X = file.boyfriend[0];
 		BF_Y = file.boyfriend[1];
@@ -701,28 +701,31 @@ class PlayState extends MusicBeatState
 		
 		var gfVersion:String = SONG.gfVersion;
 		if (gfVersion == null || gfVersion.length < 1) SONG.gfVersion = gfVersion = 'gf';
+		if (stage.stageData.hide_girlfriend) SONG.gfVersion = 'emptygf'; // quick change to prevent the null gf bug
 		
-		if (!stage.stageData.hide_girlfriend)
-		{
-			gf = new Character(gfVersion);
-			gf.scrollFactor.set(0.95, 0.95);
-			
-			gfGroup.addChar(gf);
-			gfGroup.parent = gf;
-			startCharacterScript(gf.curCharacter, gf);
-			
-			scripts.set('gf', gf);
-			scripts.set('gfGroup', gfGroup);
-		}
+		// if (!stage.stageData.hide_girlfriend)
+		// {
+		gf = new Character(gfVersion);
+		gf.scrollFactor.set(0.95, 0.95);
+		add(gf);
+		gfGroup.parent = gf;
+		startCharacterPos(gf);
+		startCharacterScript(gf.curCharacter, gf);
+		
+		scripts.set('gf', gf);
+		scripts.set('gfGroup', gfGroup);
+		// }
 		
 		dad = new Character(SONG.player2);
+		startCharacterPos(dad);
 		startCharacterScript(dad.curCharacter, dad);
-		dadGroup.addChar(dad);
+		add(dad);
 		dadGroup.parent = dad;
 		
 		boyfriend = new Character(SONG.player1, true);
+		startCharacterPos(boyfriend);
 		startCharacterScript(boyfriend.curCharacter, boyfriend);
-		boyfriendGroup.addChar(boyfriend);
+		add(boyfriend);
 		boyfriendGroup.parent = boyfriend;
 		
 		scripts.set('dad', dad);
@@ -958,7 +961,7 @@ class PlayState extends MusicBeatState
 			});
 			strums.onNoteMiss.add((note, field) -> {
 				if (note.canMiss || !field.playerControls) return;
-
+				
 				inline function actualMiss()
 				{
 					if (combo > 5 && gf != null && gf.animOffsets.exists('sad')) gf.playAnim('sad');
@@ -966,7 +969,7 @@ class PlayState extends MusicBeatState
 					audio.miss();
 					
 					if (instakillOnMiss) doDeathCheck(true);
-
+					
 					songMisses++;
 					if (!practiceMode) songScore -= 10;
 					
@@ -974,15 +977,11 @@ class PlayState extends MusicBeatState
 					RecalculateRating(true);
 				}
 				
-				
-				if(ClientPrefs.guitarHeroSustains)
+				if (ClientPrefs.guitarHeroSustains)
 				{
-					if(!note.isSustainNote)
-						actualMiss();
+					if (!note.isSustainNote) actualMiss();
 				}
-				else 
-					actualMiss();
-
+				else actualMiss();
 			});
 			strums.onMissPress.add((key) -> {
 				audio.miss();
@@ -1586,6 +1585,9 @@ class PlayState extends MusicBeatState
 				Paths.getAtlasFrames(skin.sustainSplashTexture);
 				
 				skin = FlxDestroyUtil.destroy(skin);
+			case 'Change Stage':
+				var stageName:String = event.value1.toLowerCase();
+				stagesToLoad.push(stageName);
 			case 'Change Character':
 				var charType:Int = 0;
 				switch (event.value1.toLowerCase())
@@ -2097,6 +2099,87 @@ class PlayState extends MusicBeatState
 		}
 	}
 	
+	function startCharacterPos(char:Character, ?gfCheck:Bool = false)
+	{
+		if (char == gf)
+		{
+			char.setPosition(GF_X + gf.positionArray[0], GF_Y + gf.positionArray[1]);
+		}
+		else if (char == dad)
+		{
+			char.setPosition(DAD_X + dad.positionArray[0], DAD_Y + dad.positionArray[1]);
+			
+			if (dad.curCharacter.startsWith('gf') || dad.curCharacter.endsWith('speaker'))
+			{
+				dad.setPosition(GF_X + dad.positionArray[0], GF_Y + dad.positionArray[1]);
+				if (gf != null) gf.visible = false;
+			}
+		}
+		else if (char == boyfriend)
+		{
+			char.setPosition(BF_X + boyfriend.playerPositionArray[0], BF_Y + boyfriend.playerPositionArray[1]);
+		}
+		
+		// if(gfCheck && char.curCharacter.startsWith('gf')) { //IF DAD IS GIRLFRIEND, HE GOES TO HER POSITION
+		// 	char.setPosition(GF_X, GF_Y);
+		// 	char.scrollFactor.set(0.95, 0.95);
+		// 	char.danceEveryNumBeats = 2;
+		// }
+		// char.x += char.positionArray[0];
+		// char.y += char.positionArray[1];
+	}
+	
+	function changeStage(newStage:String, isPreload:Bool = false):Void
+	{
+		if (stage != null)
+		{
+			for (sprite in stage.stageProp)
+			{
+				remove(sprite);
+				sprite.destroy();
+			}
+			
+			if (scripts.call("onRemoveSpriteGroups", []) != ScriptConstants.STOP_FUNC)
+			{
+				stage.remove(gfGroup);
+				stage.remove(dadGroup);
+				stage.remove(boyfriendGroup);
+				remove(stage);
+			}
+			
+			if (stage.script != null) scripts.removeScript(stage.script);
+			
+			stage.destroy();
+		}
+		
+		stage = new Stage(newStage);
+		scripts.set('stage', stage);
+		applyStageData(stage.stageData, true);
+		
+		defaultCamZoom = stage.defaultZoom;
+		
+		stage.buildStage();
+		
+		if (stage.runScript(scripts))
+		{
+			scripts.addScript(stage.script);
+			// scripts.call('onCreatePost', []);
+			Logger.log('Stage script: ' + stage.script.name + ' initialized');
+		}
+		
+		if (scripts.call("onAddSpriteGroups", []) != ScriptConstants.STOP_FUNC)
+		{
+			add(stage);
+			stage.add(gfGroup);
+			stage.add(dadGroup);
+			stage.add(boyfriendGroup);
+		}
+		
+		stage.scriptCallBack('onCreatePost');
+		
+		refreshZ(stage);
+	}
+	
 	function changeCharacter(name:String, charType:Int):Void
 	{
 		switch (charType)
@@ -2121,6 +2204,11 @@ class PlayState extends MusicBeatState
 		
 		callHUDFunc(hud -> hud.onCharacterChange());
 	}
+	
+	public var stagesToLoad:Array<String> = [];
+	public var charactersToLoad:Array<String> = [];
+	public var imagesToLoad:Array<String> = [];
+	public var soundsToLoad:Array<String> = []; // why not?
 	
 	public function triggerEventNote(eventName:String, value1:String, value2:String):Void
 	{
@@ -2315,6 +2403,9 @@ class PlayState extends MusicBeatState
 				getFieldFromID(fieldID).changeSkin(skin);
 			// final field = getFieldFromID(ID)
 			
+			case 'Change Stage':
+				var stageName:String = value1.toLowerCase();
+				changeStage(stageName);
 			case 'Change Character':
 				var charType:Int = 0;
 				switch (value1)
