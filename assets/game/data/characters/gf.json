@@ -2,68 +2,84 @@
 	"animations": [
 		{
 			"offsets": [
-				3,
+				0,
 				0
 			],
-			"loop": false,
-			"anim": "cheer",
+			"indices": [],
 			"fps": 24,
+			"anim": "cheer",
+			"loop": false,
 			"name": "GF Cheer",
-			"indices": []
+			"playerOffsets": [
+				0,
+				0
+			]
 		},
 		{
 			"offsets": [
 				0,
 				-19
 			],
-			"loop": false,
-			"anim": "singLEFT",
+			"indices": [],
 			"fps": 24,
+			"anim": "singLEFT",
+			"loop": false,
 			"name": "GF left note",
-			"indices": []
+			"playerOffsets": [
+				0,
+				-19
+			]
 		},
 		{
 			"offsets": [
 				0,
 				-20
 			],
-			"loop": false,
-			"anim": "singDOWN",
+			"indices": [],
 			"fps": 24,
-			"name": "GF Down Note",
-			"indices": []
+			"anim": "singRIGHT",
+			"loop": false,
+			"name": "GF Right Note",
+			"playerOffsets": [
+				0,
+				-20
+			]
 		},
 		{
 			"offsets": [
 				0,
 				4
 			],
-			"loop": false,
-			"anim": "singUP",
+			"indices": [],
 			"fps": 24,
+			"anim": "singUP",
+			"loop": false,
 			"name": "GF Up Note",
-			"indices": []
+			"playerOffsets": [
+				0,
+				4
+			]
 		},
 		{
 			"offsets": [
 				0,
 				-20
 			],
-			"loop": false,
-			"anim": "singRIGHT",
+			"indices": [],
 			"fps": 24,
-			"name": "GF Right Note",
-			"indices": []
+			"anim": "singDOWN",
+			"loop": false,
+			"name": "GF Down Note",
+			"playerOffsets": [
+				0,
+				-20
+			]
 		},
 		{
 			"offsets": [
 				-2,
 				-21
 			],
-			"loop": false,
-			"anim": "sad",
-			"fps": 24,
-			"name": "gf sad",
 			"indices": [
 				0,
 				1,
@@ -78,6 +94,14 @@
 				10,
 				11,
 				12
+			],
+			"fps": 24,
+			"anim": "sad",
+			"loop": false,
+			"name": "gf sad",
+			"playerOffsets": [
+				-2,
+				-2
 			]
 		},
 		{
@@ -85,10 +109,6 @@
 				0,
 				-9
 			],
-			"loop": false,
-			"anim": "danceLeft",
-			"fps": 24,
-			"name": "GF Dancing Beat",
 			"indices": [
 				30,
 				0,
@@ -106,6 +126,14 @@
 				12,
 				13,
 				14
+			],
+			"fps": 24,
+			"anim": "danceLeft",
+			"loop": false,
+			"name": "GF Dancing Beat",
+			"playerOffsets": [
+				0,
+				-9
 			]
 		},
 		{
@@ -113,10 +141,6 @@
 				0,
 				-9
 			],
-			"loop": false,
-			"anim": "danceRight",
-			"fps": 24,
-			"name": "GF Dancing Beat",
 			"indices": [
 				15,
 				16,
@@ -133,6 +157,14 @@
 				27,
 				28,
 				29
+			],
+			"fps": 24,
+			"anim": "danceRight",
+			"loop": false,
+			"name": "GF Dancing Beat",
+			"playerOffsets": [
+				0,
+				-9
 			]
 		},
 		{
@@ -140,15 +172,19 @@
 				45,
 				-8
 			],
-			"loop": true,
-			"anim": "hairBlow",
-			"fps": 24,
-			"name": "GF Dancing Beat Hair blowing",
 			"indices": [
 				0,
 				1,
 				2,
 				3
+			],
+			"fps": 24,
+			"anim": "hairBlow",
+			"loop": false,
+			"name": "GF Dancing Beat Hair blowing",
+			"playerOffsets": [
+				45,
+				-8
 			]
 		},
 		{
@@ -156,10 +192,6 @@
 				0,
 				-9
 			],
-			"loop": false,
-			"anim": "hairFall",
-			"fps": 24,
-			"name": "GF Dancing Beat Hair Landing",
 			"indices": [
 				0,
 				1,
@@ -173,6 +205,14 @@
 				9,
 				10,
 				11
+			],
+			"fps": 24,
+			"anim": "hairFall",
+			"loop": false,
+			"name": "GF Dancing Beat Hair Landing",
+			"playerOffsets": [
+				0,
+				-9
 			]
 		},
 		{
@@ -180,11 +220,30 @@
 				-2,
 				-17
 			],
-			"loop": true,
-			"anim": "scared",
+			"indices": [],
 			"fps": 24,
+			"anim": "scared",
+			"loop": false,
 			"name": "GF FEAR",
-			"indices": []
+			"playerOffsets": [
+				-2,
+				-17
+			]
+		},
+		{
+			"offsets": [
+				0,
+				-9
+			],
+			"indices": [],
+			"fps": 24,
+			"anim": "transform",
+			"loop": false,
+			"name": "GF Transform",
+			"playerOffsets": [
+				0,
+				-9
+			]
 		}
 	],
 	"no_antialiasing": false,
@@ -193,20 +252,21 @@
 		0,
 		0
 	],
-	"dance_every": 1,
-	"gameover_intial_sound": null,
-	"scalableOffsets": false,
-	"gameover_confirm_sound": null,
+	"playerposition": [
+		0,
+		350
+	],
 	"healthicon": "gf",
-	"gameover_character": null,
 	"flip_x": false,
-	"healthbar_colour": -5963699,
+	"healthbar_colors": [
+		154,
+		22,
+		82
+	],
 	"camera_position": [
 		0,
 		0
 	],
-	"gameover_loop_sound": null,
 	"sing_duration": 4,
-	"scale": 1,
-	"_editor_isPlayer": false
+	"scale": 1
 }

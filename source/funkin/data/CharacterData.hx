@@ -63,7 +63,10 @@ class CharacterParser
 		data.image ??= baseInfo.image;
 		data.dance_every ??= baseInfo.dance_every;
 		data.position ??= baseInfo.position;
+		data.player_position ??= baseInfo.player_position;
 		data.camera_position ??= baseInfo.camera_position;
+		data.player_camera_position ??= baseInfo.player_camera_position;
+		data.isPlayerChar ??= data.isPlayerChar;
 		data.animations ??= baseInfo.animations;
 		data.scale ??= baseInfo.scale;
 		
@@ -338,9 +341,12 @@ class CharacterParser
 			image: 'characters/BOYFRIEND',
 			dance_every: 2,
 			position: [0, 0],
+			player_position: [0, 0],
 			camera_position: [0, 0],
+			player_camera_position: [0, 0],
 			animations: [],
-			scale: 1
+			scale: 1,
+			isPlayerChar: false
 		};
 	}
 	
@@ -348,6 +354,7 @@ class CharacterParser
 	{
 		return {
 			offsets: [0, 0],
+			playerOffsets: [0, 0],
 			flipX: false,
 			flipY: false,
 			fps: 24,
@@ -396,6 +403,8 @@ typedef AnimationInfo =
 	 */
 	var offsets:Array<Int>;
 	
+	var playerOffsets:Array<Int>;
+	
 	/**
 	 * Whether this animation should be flipped horizontally
 	 */
@@ -442,10 +451,22 @@ typedef CharacterInfo =
 	 */
 	var position:Array<Float>;
 	
+	@:optional var player_position:Array<Float>; // New preferred field
+	@:optional var playerposition:Array<Float>; // Legacy fallback
+	
+	/**
+	 * Whether this is a player character
+	 */
+	@:optional var is_player_char:Bool; // New preferred field
+	
+	@:optional var isPlayerChar:Bool; // Legacy fallback
+	
 	/**
 	 * A base offset of the characters camera position stored as [x,y].
 	 */
 	var camera_position:Array<Float>;
+	
+	var player_camera_position:Array<Float>;
 	
 	/**
 	 * Whether the character should be flipped.

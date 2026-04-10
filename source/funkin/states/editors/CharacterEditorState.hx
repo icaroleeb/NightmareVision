@@ -634,6 +634,7 @@ class CharacterEditorState extends UIState // MUST EXTEND UI STATE needed for ac
 					loop: uiElements.characterDialogBox.animationLoopCheckbox.selected,
 					indices: indices,
 					offsets: previousOffsets,
+					playerOffsets: previousOffsets,
 					flipX: flipX,
 					flipY: flipY
 				};
@@ -1440,7 +1441,9 @@ class CharacterEditorState extends UIState // MUST EXTEND UI STATE needed for ac
 				"sing_duration": character.singDuration,
 				"healthicon": character.healthIcon,
 				"position": character.positionArray,
+				"player_position": character.playerPositionArray,
 				"camera_position": character.cameraPosition,
+				"player_camera_position": character.playerCameraPosition,
 				"flip_x": character.originalFlipX,
 				"vslice_sustains": character.vSliceSustains,
 				"no_antialiasing": character.noAntialiasing,
@@ -1490,6 +1493,10 @@ class CharacterEditorState extends UIState // MUST EXTEND UI STATE needed for ac
 						0,
 						0
 					],
+					playerOffsets: [
+						0,
+						0
+					],
 					fps: 24,
 					anim: "idle",
 					indices: [],
@@ -1497,6 +1504,10 @@ class CharacterEditorState extends UIState // MUST EXTEND UI STATE needed for ac
 				},
 				{
 					offsets: [
+						0,
+						0
+					],
+					playerOffsets: [
 						0,
 						0
 					],
@@ -1511,6 +1522,10 @@ class CharacterEditorState extends UIState // MUST EXTEND UI STATE needed for ac
 						0,
 						0
 					],
+					playerOffsets: [
+						0,
+						0
+					],
 					indices: [],
 					fps: 24,
 					anim: "singDOWN",
@@ -1522,6 +1537,10 @@ class CharacterEditorState extends UIState // MUST EXTEND UI STATE needed for ac
 						0,
 						0
 					],
+					playerOffsets: [
+						0,
+						0
+					],
 					indices: [],
 					fps: 24,
 					anim: "singUP",
@@ -1530,6 +1549,10 @@ class CharacterEditorState extends UIState // MUST EXTEND UI STATE needed for ac
 				},
 				{
 					offsets: [
+						0,
+						0
+					],
+					playerOffsets: [
 						0,
 						0
 					],
@@ -1546,6 +1569,10 @@ class CharacterEditorState extends UIState // MUST EXTEND UI STATE needed for ac
 				0,
 				0
 			],
+			player_position: [
+				0,
+				0
+			],
 			healthicon: "face",
 			flip_x: false,
 			vslice_sustains: false,
@@ -1554,6 +1581,11 @@ class CharacterEditorState extends UIState // MUST EXTEND UI STATE needed for ac
 				0,
 				0
 			],
+			player_camera_position: [
+				0,
+				0
+			],
+			isPlayerChar: false,
 			sing_duration: 6.1,
 			scale: 1,
 			dance_every: 2,

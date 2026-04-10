@@ -14,6 +14,8 @@ class FunkinSprite extends FlxAnimate
 	 */
 	public final animOffsets:Map<String, Array<Float>> = [];
 	
+	public final animPlayerOffsets:Map<String, Array<Float>> = [];
+	
 	/**
 	 * The current sprite offset.
 	 * 
@@ -209,6 +211,23 @@ class FunkinSprite extends FlxAnimate
 	public function addOffset(anim:String, x:Float = 0, y:Float = 0):Void
 	{
 		animOffsets[anim] = [x, y];
+	}
+	
+	public function addPlayerOffset(name:String, x:Float = 0, y:Float = 0)
+	{
+		animPlayerOffsets[name] = [x, y];
+	}
+	
+	public inline function getAnimOffset(name:String)
+	{
+		if (animOffsets[name] != null) return animOffsets[name];
+		return [0, 0];
+	}
+	
+	public inline function getAnimPlayerOffset(name:String)
+	{
+		if (animPlayerOffsets[name] != null) return animPlayerOffsets[name];
+		return [0, 0];
 	}
 	
 	/**

@@ -701,28 +701,31 @@ class PlayState extends MusicBeatState
 		
 		var gfVersion:String = SONG.gfVersion;
 		if (gfVersion == null || gfVersion.length < 1) SONG.gfVersion = gfVersion = 'gf';
+		if (stage.stageData.hide_girlfriend) SONG.gfVersion = 'emptygf'; // quick change to prevent the null gf bug
 		
-		if (!stage.stageData.hide_girlfriend)
-		{
-			gf = new Character(gfVersion);
-			gf.scrollFactor.set(0.95, 0.95);
-			
-			gfGroup.addChar(gf);
-			gfGroup.parent = gf;
-			startCharacterScript(gf.curCharacter, gf);
-			
-			scripts.set('gf', gf);
-			scripts.set('gfGroup', gfGroup);
-		}
+		// if (!stage.stageData.hide_girlfriend)
+		// {
+		gf = new Character(gfVersion);
+		gf.scrollFactor.set(0.95, 0.95);
+		add(gf);
+		gfGroup.parent = gf;
+		startCharacterPos(gf);
+		startCharacterScript(gf.curCharacter, gf);
+		
+		scripts.set('gf', gf);
+		scripts.set('gfGroup', gfGroup);
+		// }
 		
 		dad = new Character(SONG.player2);
+		startCharacterPos(dad);
 		startCharacterScript(dad.curCharacter, dad);
-		dadGroup.addChar(dad);
+		add(dad);
 		dadGroup.parent = dad;
 		
 		boyfriend = new Character(SONG.player1, true);
+		startCharacterPos(boyfriend);
 		startCharacterScript(boyfriend.curCharacter, boyfriend);
-		boyfriendGroup.addChar(boyfriend);
+		add(boyfriend);
 		boyfriendGroup.parent = boyfriend;
 		
 		scripts.set('dad', dad);
@@ -2096,6 +2099,36 @@ class PlayState extends MusicBeatState
 		}
 	}
 	
+	function startCharacterPos(char:Character, ?gfCheck:Bool = false)
+	{
+		if (char == gf)
+		{
+			char.setPosition(GF_X + gf.positionArray[0], GF_Y + gf.positionArray[1]);
+		}
+		else if (char == dad)
+		{
+			char.setPosition(DAD_X + dad.positionArray[0], DAD_Y + dad.positionArray[1]);
+			
+			if (dad.curCharacter.startsWith('gf') || dad.curCharacter.endsWith('speaker'))
+			{
+				dad.setPosition(GF_X + dad.positionArray[0], GF_Y + dad.positionArray[1]);
+				if (gf != null) gf.visible = false;
+			}
+		}
+		else if (char == boyfriend)
+		{
+			char.setPosition(BF_X + boyfriend.playerPositionArray[0], BF_Y + boyfriend.playerPositionArray[1]);
+		}
+		
+		// if(gfCheck && char.curCharacter.startsWith('gf')) { //IF DAD IS GIRLFRIEND, HE GOES TO HER POSITION
+		// 	char.setPosition(GF_X, GF_Y);
+		// 	char.scrollFactor.set(0.95, 0.95);
+		// 	char.danceEveryNumBeats = 2;
+		// }
+		// char.x += char.positionArray[0];
+		// char.y += char.positionArray[1];
+	}
+	
 	function changeStage(newStage:String, isPreload:Bool = false):Void
 	{
 		if (stage != null)
@@ -2142,7 +2175,7 @@ class PlayState extends MusicBeatState
 			stage.add(boyfriendGroup);
 		}
 		
-		if (isPreload) stage.scriptCallBack('onCreatePost');
+		stage.scriptCallBack('onCreatePost');
 		
 		refreshZ(stage);
 	}
