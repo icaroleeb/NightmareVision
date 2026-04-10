@@ -68,6 +68,18 @@ class ScriptGroup implements IFlxDestroyable
 		return true;
 	}
 	
+	public function removeScript(script:Null<FunkinScript>):Bool
+	{
+		if (script == null || !exists(script.name)) return false;
+		
+		@:privateAccess
+		final interp:InterpEx = cast script.interp;
+		if (interp.parent != parent) interp.parent = parent;
+		interp.sharedFields = scriptShareables;
+		members.remove(script);
+		return true;
+	}
+	
 	@:inheritDoc(funkin.scripts.FunkinScript.set)
 	public function set(varName:String, arg:Dynamic)
 	{

@@ -2083,6 +2083,49 @@ class PlayState extends MusicBeatState
 		}
 	}
 	
+	function changeStage(newStage:String):Void
+	{
+		// remove stage
+		
+		if (stage != null)
+		{
+			if (scripts.call("onRemoveSpriteGroups", []) != ScriptConstants.STOP_FUNC)
+			{
+				remove(stage);
+				stage.remove(gfGroup);
+				stage.remove(dadGroup);
+				stage.remove(boyfriendGroup);
+			}
+			
+			scripts.removeScript(stage.script);
+			stage.destroy();
+			stage = null;
+		}
+		
+		// add new stage
+		
+		stage = new Stage(SONG.stage);
+		scripts.set('stage', stage);
+		applyStageData(stage.stageData);
+		
+		stage.buildStage();
+		
+		if (stage.runScript(scripts))
+		{
+			scripts.addScript(stage.script);
+			
+			Logger.log('script: ' + stage.script.name + ' intialized');
+		}
+		
+		if (scripts.call("onAddSpriteGroups", []) != ScriptConstants.STOP_FUNC)
+		{
+			add(stage);
+			stage.add(gfGroup);
+			stage.add(dadGroup);
+			stage.add(boyfriendGroup);
+		}
+	}
+	
 	function changeCharacter(name:String, charType:Int):Void
 	{
 		switch (charType)
