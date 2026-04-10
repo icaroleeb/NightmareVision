@@ -555,12 +555,12 @@ class PlayState extends MusicBeatState
 		return (cpuControlled = val);
 	}
 	
-	function applyStageData(file:Null<StageFile>):Void
+	function applyStageData(file:Null<StageFile>, isChangeStage:Bool = false):Void
 	{
 		if (file == null) return;
 		
 		defaultCamZoom = file.defaultZoom;
-		FlxG.camera.zoom = file.defaultZoom;
+		if (isChangeStage) FlxG.camera.zoom = file.defaultZoom;
 		
 		BF_X = file.boyfriend[0];
 		BF_Y = file.boyfriend[1];
@@ -958,7 +958,7 @@ class PlayState extends MusicBeatState
 			});
 			strums.onNoteMiss.add((note, field) -> {
 				if (note.canMiss || !field.playerControls) return;
-
+				
 				inline function actualMiss()
 				{
 					if (combo > 5 && gf != null && gf.animOffsets.exists('sad')) gf.playAnim('sad');
@@ -966,7 +966,7 @@ class PlayState extends MusicBeatState
 					audio.miss();
 					
 					if (instakillOnMiss) doDeathCheck(true);
-
+					
 					songMisses++;
 					if (!practiceMode) songScore -= 10;
 					
@@ -974,15 +974,11 @@ class PlayState extends MusicBeatState
 					RecalculateRating(true);
 				}
 				
-				
-				if(ClientPrefs.guitarHeroSustains)
+				if (ClientPrefs.guitarHeroSustains)
 				{
-					if(!note.isSustainNote)
-						actualMiss();
+					if (!note.isSustainNote) actualMiss();
 				}
-				else 
-					actualMiss();
-
+				else actualMiss();
 			});
 			strums.onMissPress.add((key) -> {
 				audio.miss();
@@ -1586,6 +1582,9 @@ class PlayState extends MusicBeatState
 				Paths.getAtlasFrames(skin.sustainSplashTexture);
 				
 				skin = FlxDestroyUtil.destroy(skin);
+			case 'Change Stage':
+				var stageName:String = event.value1.toLowerCase();
+				stagesToLoad.push(stageName);
 			case 'Change Character':
 				var charType:Int = 0;
 				switch (event.value1.toLowerCase())
@@ -2097,38 +2096,42 @@ class PlayState extends MusicBeatState
 		}
 	}
 	
-	function changeStage(newStage:String):Void
+	function changeStage(newStage:String, isPreload:Bool = false):Void
 	{
-		// remove stage
-		
 		if (stage != null)
 		{
+			for (sprite in stage.stageProp)
+			{
+				remove(sprite);
+				sprite.destroy();
+			}
+			
 			if (scripts.call("onRemoveSpriteGroups", []) != ScriptConstants.STOP_FUNC)
 			{
-				remove(stage);
 				stage.remove(gfGroup);
 				stage.remove(dadGroup);
 				stage.remove(boyfriendGroup);
+				remove(stage);
 			}
 			
-			scripts.removeScript(stage.script);
+			if (stage.script != null) scripts.removeScript(stage.script);
+			
 			stage.destroy();
-			stage = null;
 		}
 		
-		// add new stage
-		
-		stage = new Stage(SONG.stage);
+		stage = new Stage(newStage);
 		scripts.set('stage', stage);
-		applyStageData(stage.stageData);
+		applyStageData(stage.stageData, true);
+		
+		defaultCamZoom = stage.defaultZoom;
 		
 		stage.buildStage();
 		
 		if (stage.runScript(scripts))
 		{
 			scripts.addScript(stage.script);
-			
-			Logger.log('script: ' + stage.script.name + ' intialized');
+			// scripts.call('onCreatePost', []);
+			Logger.log('Stage script: ' + stage.script.name + ' initialized');
 		}
 		
 		if (scripts.call("onAddSpriteGroups", []) != ScriptConstants.STOP_FUNC)
@@ -2138,6 +2141,10 @@ class PlayState extends MusicBeatState
 			stage.add(dadGroup);
 			stage.add(boyfriendGroup);
 		}
+		
+		if (isPreload) stage.scriptCallBack('onCreatePost');
+		
+		refreshZ(stage);
 	}
 	
 	function changeCharacter(name:String, charType:Int):Void
@@ -2164,6 +2171,11 @@ class PlayState extends MusicBeatState
 		
 		callHUDFunc(hud -> hud.onCharacterChange());
 	}
+	
+	public var stagesToLoad:Array<String> = [];
+	public var charactersToLoad:Array<String> = [];
+	public var imagesToLoad:Array<String> = [];
+	public var soundsToLoad:Array<String> = []; // why not?
 	
 	public function triggerEventNote(eventName:String, value1:String, value2:String):Void
 	{
@@ -2358,6 +2370,9 @@ class PlayState extends MusicBeatState
 				getFieldFromID(fieldID).changeSkin(skin);
 			// final field = getFieldFromID(ID)
 			
+			case 'Change Stage':
+				var stageName:String = value1.toLowerCase();
+				changeStage(stageName);
 			case 'Change Character':
 				var charType:Int = 0;
 				switch (value1)

@@ -48,6 +48,11 @@ class Stage extends FlxTypedContainer<FlxBasic>
 	 */
 	public var defaultZoom(get, never):Float;
 	
+	/**
+	 * Objects added to the stage through the script's `add` function will be added to this array.
+	 */
+	public var stageProp:Array<FlxBasic> = [];
+	
 	function get_defaultZoom():Float
 	{
 		return stageData.defaultZoom;
@@ -204,7 +209,10 @@ class Stage extends FlxTypedContainer<FlxBasic>
 			
 			@:nullSafety(Off) // trust me bro
 			{
-				script.set("add", add);
+				script.set("add", function(sprite:FlxBasic) {
+					stageProp.push(sprite);
+					add(sprite);
+				});
 				script.set("stage", this);
 				
 				for (id => obj in objects)
@@ -235,6 +243,11 @@ class Stage extends FlxTypedContainer<FlxBasic>
 		}
 		
 		return script != null;
+	}
+	
+	public function scriptCallBack(callName:String)
+	{
+		if (script != null && script.exists(callName)) script.call(callName);
 	}
 	
 	public function onBeatHit()
@@ -322,5 +335,13 @@ class Stage extends FlxTypedContainer<FlxBasic>
 		}
 		
 		return new Bopper();
+	}
+	
+	override function destroy()
+	{
+		objects.clear();
+		boppers = [];
+		stageProp = [];
+		super.destroy();
 	}
 }

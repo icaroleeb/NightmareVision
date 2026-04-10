@@ -72,12 +72,30 @@ class ScriptGroup implements IFlxDestroyable
 	{
 		if (script == null || !exists(script.name)) return false;
 		
-		@:privateAccess
-		final interp:InterpEx = cast script.interp;
-		if (interp.parent != parent) interp.parent = parent;
-		interp.sharedFields = scriptShareables;
-		members.remove(script);
-		return true;
+		try
+		{
+			script.call("onDestroy");
+			
+			@:privateAccess
+			{
+				final interp:InterpEx = cast script.interp;
+				
+				interp.sharedFields = null;
+				interp.parent = null;
+				
+				// if (Reflect.hasField(script, 'stop')) script.stop();
+			}
+			
+			members.remove(script);
+			flixel.util.FlxDestroyUtil.destroy(script);
+			
+			return true;
+		}
+		catch (e:Dynamic)
+		{
+			Logger.log("Error removing script " + script.name + ": " + e, ERROR);
+			return false;
+		}
 	}
 	
 	@:inheritDoc(funkin.scripts.FunkinScript.set)
