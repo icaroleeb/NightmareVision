@@ -1,0 +1,144 @@
+{
+	"animations": [
+		{
+			"offsets": [-5, 0],
+			"loop": false,
+			"fps": 24,
+			"anim": "idle",
+			"indices": [],
+			"name": "BF idle dance",
+			"playerOffsets": [-5, 0]
+		},
+		{
+			"offsets": [1, 27],
+			"loop": false,
+			"fps": 24,
+			"anim": "singUP",
+			"indices": [],
+			"name": "BF NOTE UP0",
+			"playerOffsets": [-45, 28]
+		},
+		{
+			"offsets": [-30, -55],
+			"loop": false,
+			"fps": 24,
+			"anim": "singDOWN",
+			"indices": [],
+			"name": "BF NOTE DOWN0",
+			"playerOffsets": [-10, -50]
+		},
+		{
+			"offsets": [-9, 27],
+			"loop": false,
+			"fps": 24,
+			"anim": "singUPmiss",
+			"indices": [],
+			"name": "BF NOTE UP MISS",
+			"playerOffsets": [-42, 26]
+		},
+		{
+			"offsets": [-21, -19],
+			"loop": false,
+			"fps": 24,
+			"anim": "singDOWNmiss",
+			"indices": [],
+			"name": "BF NOTE DOWN MISS",
+			"playerOffsets": [-21, -19]
+		},
+		{
+			"offsets": [36, -5],
+			"loop": false,
+			"fps": 24,
+			"anim": "singLEFT",
+			"indices": [],
+			"name": "BF NOTE LEFT0",
+			"playerOffsets": [4, -6]
+		},
+		{
+			"offsets": [-39, -6],
+			"loop": false,
+			"fps": 24,
+			"anim": "singRIGHT",
+			"indices": [],
+			"name": "BF NOTE RIGHT0",
+			"playerOffsets": [-48, -5]
+		},
+		{
+			"offsets": [43, 24],
+			"loop": false,
+			"fps": 24,
+			"anim": "singLEFTmiss",
+			"indices": [],
+			"name": "BF NOTE LEFT MISS",
+			"playerOffsets": [4, 21]
+		},
+		{
+			"offsets": [-40, 21],
+			"loop": false,
+			"fps": 24,
+			"anim": "singRIGHTmiss",
+			"indices": [],
+			"name": "BF NOTE RIGHT MISS",
+			"playerOffsets": [-44, 22]
+		},
+		{
+			"offsets": [0, 0],
+			"indices": [10, 11, 12, 13],
+			"fps": 24,
+			"anim": "idle-loop",
+			"loop": true,
+			"name": "BF idle dance",
+			"playerOffsets": [-5, 0]
+		},
+		{
+			"offsets": [0, 0],
+			"indices": [11, 12, 13, 14],
+			"fps": 24,
+			"anim": "singUP-loop",
+			"loop": true,
+			"name": "BF NOTE UP0",
+			"playerOffsets": [-45, 28]
+		},
+		{
+			"offsets": [0, 0],
+			"indices": [12, 13, 14, 15],
+			"fps": 24,
+			"anim": "singLEFT-loop",
+			"loop": true,
+			"name": "BF NOTE LEFT0",
+			"playerOffsets": [4, -6]
+		},
+		{
+			"offsets": [0, 0],
+			"indices": [58, 59, 60, 61],
+			"fps": 24,
+			"anim": "singRIGHT-loop",
+			"loop": true,
+			"name": "BF NOTE RIGHT0",
+			"playerOffsets": [-48, -5]
+		},
+		{
+			"offsets": [0, 0],
+			"indices": [26, 27, 28, 29],
+			"fps": 24,
+			"anim": "singDOWN-loop",
+			"loop": true,
+			"name": "BF NOTE DOWN0",
+			"playerOffsets": [-10, -50]
+		}
+	],
+	"vocals_file": "",
+	"no_antialiasing": false,
+	"image": "characters/bfCar",
+	"position": [0, 350],
+	"player_camera_position": [0, 0],
+	"healthicon": "bf",
+	"flip_x": true,
+	"healthbar_colors": [14, 174, 254],
+	"camera_position": [0, 0],
+	"player_position": [0, 350],
+	"sing_duration": 4,
+	"isPlayerChar": false,
+	"scale": 1,
+	"_editor_isPlayer": true
+}

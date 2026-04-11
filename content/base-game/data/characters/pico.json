@@ -1,0 +1,153 @@
+{
+	"animations": [
+		{
+			"loop": false,
+			"offsets": [0, 0],
+			"anim": "idle",
+			"fps": 24,
+			"playerOffsets": [0, 0],
+			"name": "Pico Idle Dance",
+			"indices": []
+		},
+		{
+			"loop": false,
+			"offsets": [-29, 27],
+			"anim": "singUP",
+			"fps": 24,
+			"playerOffsets": [21, 27],
+			"name": "pico Up note0",
+			"indices": []
+		},
+		{
+			"loop": false,
+			"offsets": [199, -80],
+			"anim": "singDOWN",
+			"fps": 24,
+			"playerOffsets": [84, -80],
+			"name": "Pico Down Note0",
+			"indices": []
+		},
+		{
+			"loop": false,
+			"offsets": [200, -38],
+			"anim": "singDOWNmiss",
+			"fps": 24,
+			"playerOffsets": [80, -38],
+			"name": "Pico Down Note MISS",
+			"indices": []
+		},
+		{
+			"loop": false,
+			"offsets": [28, 67],
+			"anim": "singUPmiss",
+			"fps": 24,
+			"playerOffsets": [28, 67],
+			"name": "pico Up note miss",
+			"indices": []
+		},
+		{
+			"offsets": [-68, -7],
+			"loop": false,
+			"fps": 24,
+			"anim": "singRIGHT",
+			"playerOffsets": [-48, 2],
+			"indices": [],
+			"name": "Pico NOTE LEFT0"
+		},
+		{
+			"offsets": [65, 9],
+			"loop": false,
+			"fps": 24,
+			"anim": "singLEFT",
+			"playerOffsets": [85, -10],
+			"indices": [],
+			"name": "Pico Note Right0"
+		},
+		{
+			"offsets": [-45, 50],
+			"loop": false,
+			"fps": 24,
+			"anim": "singRIGHTmiss",
+			"playerOffsets": [-45, 50],
+			"indices": [],
+			"name": "Pico NOTE LEFT miss"
+		},
+		{
+			"offsets": [83, 28],
+			"loop": false,
+			"fps": 24,
+			"anim": "singLEFTmiss",
+			"playerOffsets": [83, 28],
+			"indices": [],
+			"name": "Pico Note Right Miss"
+		},
+		{
+			"loop": false,
+			"offsets": [256, 232],
+			"anim": "shoot",
+			"fps": 24,
+			"playerOffsets": [256, 232],
+			"name": "Pico Shoot Hip Full0",
+			"indices": []
+		},
+		{
+			"loop": false,
+			"offsets": [0, 0],
+			"anim": "shootMISS",
+			"fps": 24,
+			"playerOffsets": [0, 0],
+			"name": "Pico Hit Can0",
+			"indices": []
+		},
+		{
+			"loop": false,
+			"offsets": [0, 0],
+			"anim": "cock",
+			"fps": 24,
+			"playerOffsets": [0, 0],
+			"name": "Pico Reload0",
+			"indices": []
+		},
+		{
+			"loop": false,
+			"offsets": [60, 0],
+			"anim": "intro1",
+			"fps": 24,
+			"playerOffsets": [60, 0],
+			"name": "Pico Gets Pissed0",
+			"indices": []
+		},
+		{
+			"loop": false,
+			"offsets": [0, 0],
+			"anim": "cockCutscene",
+			"fps": 24,
+			"playerOffsets": [0, 0],
+			"name": "cutscene cock0",
+			"indices": []
+		},
+		{
+			"loop": false,
+			"offsets": [255, 231],
+			"anim": "intro2",
+			"fps": 24,
+			"playerOffsets": [255, 231],
+			"name": "shoot and return0",
+			"indices": []
+		}
+	],
+	"vocals_file": "",
+	"no_antialiasing": false,
+	"image": "characters/Pico_FNF_assetss, characters/picoAnims/Pico_Intro, characters/picoAnims/Pico_Shooting",
+	"position": [0, 300],
+	"player_camera_position": [200, 40],
+	"is_player_char": false,
+	"healthicon": "pico",
+	"flip_x": true,
+	"healthbar_colors": [183, 216, 85],
+	"camera_position": [0, 0],
+	"player_position": [0, 300],
+	"sing_duration": 4,
+	"scale": 1,
+	"_editor_isPlayer": false
+}
