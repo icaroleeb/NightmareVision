@@ -281,6 +281,9 @@ class CharacterEditorState extends UIState // MUST EXTEND UI STATE needed for ac
 			character.flipX = (character.originalFlipX != character.isPlayer);
 			
 			positionCharacter();
+			
+			character.flipAnims();
+			character.playAnim("idle", true);
 		}
 		
 		uiElements.toolBar.isPlayerCheckBox.onClick = (ui) -> {
