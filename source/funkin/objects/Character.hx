@@ -178,6 +178,8 @@ class Character extends Bopper
 	{
 		super(x, y);
 		
+		// animOffsets = new Map<String, Array<Dynamic>>();
+		// animPlayerOffsets = new Map<String, Array<Dynamic>>();
 		this.curCharacter = character;
 		this.isPlayer = isPlayer;
 		
@@ -271,16 +273,16 @@ class Character extends Bopper
 		this.animations = json.animations;
 		if (animations != null && animations.length > 0)
 		{
-			for (anim in animations)
+			for (a in animations)
 			{
-				final animAnim:String = '' + anim.anim;
-				final animName:String = '' + anim.name;
-				final animFps:Int = anim.fps;
-				final animLoop:Bool = !!anim.loop; // Bruh
-				final animIndices:Array<Int> = anim.indices ?? [];
+				final animAnim:String = '' + a.anim;
+				final animName:String = '' + a.name;
+				final animFps:Int = a.fps;
+				final animLoop:Bool = !!a.loop; // Bruh
+				final animIndices:Array<Int> = a.indices ?? [];
 				
-				final flipX = anim.flipX ?? false;
-				final flipY = anim.flipY ?? false;
+				final flipX = a.flipX ?? false;
+				final flipY = a.flipY ?? false;
 				
 				if (animIndices.length > 0)
 				{
@@ -291,10 +293,20 @@ class Character extends Bopper
 					addAnimByPrefix(animAnim, animName, animFps, animLoop, flipX, flipY);
 				}
 				
-				if (anim.offsets != null && anim.offsets.length > 1)
+				var offsets:Array<Int> = a.offsets;
+				var playerOffsets:Array<Int> = (a.playerOffsets != null && a.playerOffsets.length > 1) ? a.playerOffsets : a.offsets;
+				var swagOffsets:Array<Int> = offsets;
+				
+				if (isPlayer && playerOffsets != null && playerOffsets.length > 1)
 				{
-					addOffset(anim.anim, anim.offsets[0], anim.offsets[1]);
+					swagOffsets = playerOffsets;
 				}
+				
+				if (swagOffsets != null && swagOffsets.length > 1) addOffset(a.anim, swagOffsets[0], swagOffsets[1]);
+				else addOffset(a.anim, 0, 0);
+				
+				if (playerOffsets != null && playerOffsets.length > 1) addPlayerOffset(a.anim, playerOffsets[0], playerOffsets[1]);
+				else addPlayerOffset(a.anim, 0, 0);
 			}
 		}
 		else
@@ -307,12 +319,14 @@ class Character extends Bopper
 		if (isPlayer)
 		{
 			flipX = !flipX;
+			
 			// Doesn't flip for BF, since his are already in the right place???
-			if (!curCharacter.startsWith('bf') && isPsychPlayer) flipAnims();
+			if (!curCharacter.startsWith('bf') && !isPsychPlayer) flipAnims();
 		}
 		
 		if (!isPlayer)
-		{ // flip for bf
+		{
+			// Flip for just bf
 			if (curCharacter.startsWith('bf') || isPsychPlayer) flipAnims();
 		}
 		
@@ -444,29 +458,28 @@ class Character extends Bopper
 			
 			if ((animOffsets.exists(AnimName) && !isPlayer) || (animPlayerOffsets.exists(AnimName) && isPlayer)) offset.set(daOffset[0] * daZoom, daOffset[1] * daZoom);
 			else offset.set(0, 0);
-		}
-		// else offset.set(0, 0);
-		
-		if (curCharacter.startsWith('gf-') || curCharacter == 'gf')
-		{
-			if (AnimName == 'singLEFT') danced = true;
-			else if (AnimName == 'singRIGHT') danced = false;
 			
-			if (AnimName == 'singUP' || AnimName == 'singDOWN') danced = !danced;
+			if (curCharacter.startsWith('gf-') || curCharacter == 'gf')
+			{
+				if (AnimName == 'singLEFT') danced = true;
+				else if (AnimName == 'singRIGHT') danced = false;
+				
+				if (AnimName == 'singUP' || AnimName == 'singDOWN') danced = !danced;
+			}
+			
+			if (useFallbackMiss)
+			{
+				var realCurColor:FlxColor = curColor;
+				color = CoolUtil.blendColors(curColor, 0xFFCFAFFF);
+				curColor = realCurColor;
+			}
+			else if (color != curColor && !hasMissAnimations)
+			{
+				color = curColor;
+			}
+			
+			// super.playAnim(AnimName, Force, Reversed, Frame);
 		}
-		
-		if (useFallbackMiss)
-		{
-			var realCurColor:FlxColor = curColor;
-			color = CoolUtil.blendColors(curColor, 0xFFCFAFFF);
-			curColor = realCurColor;
-		}
-		else if (color != curColor && !hasMissAnimations)
-		{
-			color = curColor;
-		}
-		
-		super.playAnim(AnimName, Force, Reversed, Frame);
 	}
 	
 	public function quickAnimAdd(name:String, anim:String)
@@ -555,9 +568,6 @@ class Character extends Bopper
 	
 	public function flipAnims()
 	{
-		// Use 'animations' instead of 'animationsArray' as it's the one populated in loadFile
-		if (animations == null || animations.length == 0) return;
-		
 		if (isAnimateAtlas)
 		{
 			for (anim in animations)
