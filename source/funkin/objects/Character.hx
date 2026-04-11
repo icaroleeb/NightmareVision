@@ -36,6 +36,10 @@ class Character extends Bopper
 	
 	public var pastCharacter:String = DEFAULT_CHARACTER;
 	
+	public var charName:String = DEFAULT_CHARACTER;
+	public var isSpeakerChar:Bool = false;
+	public var flipMode:Bool = false;
+	
 	public var daZoom(default, set):Float = 1;
 	
 	function set_daZoom(value:Float):Float
@@ -67,6 +71,8 @@ class Character extends Bopper
 	 * if true, character uses `danceLeft` and `danceRight` instead of `idle`
 	 */
 	public var danceIdle:Bool = false;
+	
+	public var stopIdle:Bool = false;
 	
 	public var skipDance:Bool = false;
 	
@@ -186,6 +192,116 @@ class Character extends Bopper
 		genGhosts();
 		
 		loadFile(CharacterParser.fetchInfo(curCharacter));
+	}
+	
+	public function resetCharacter(x:Float, y:Float, ?character:String = 'bf', ?isPlayer:Bool = false) // beta
+	{
+		this.x = x;
+		this.y = y;
+		
+		resetVariables();
+		
+		this.isPlayer = isPlayer;
+		
+		changeCharacter(character);
+	}
+	
+	public function changeCharacter(character:String)
+	{
+		// Reset existing animation and offset maps to prevent data carryover [cite: 127]
+		animationsArray = [];
+		// animOffsets = [];
+		// animPlayerOffsets = [];
+		curCharacter = character;
+		pastCharacter = character;
+		isPsychPlayer = false;
+		
+		curColor = 0xFFFFFFFF;
+		
+		// Attempt to parse the JSON content and load the character data [cite: 131]
+		try
+		{
+			loadFile(CharacterParser.fetchInfo(curCharacter));
+		}
+		catch (e:Dynamic)
+		{
+			trace('Error loading character file of "$character": $e');
+		}
+		
+		// Reset character state flags [cite: 132]
+		for (i in ['flipMode', 'stopIdle', 'skipDance', 'specialAnim', 'stunned'])
+		{
+			Reflect.setProperty(this, i, false);
+		}
+		
+		// Determine if the character has unique "miss" animations [cite: 133]
+		hasMissAnimations = hasAnim('singLEFTmiss') || hasAnim('singDOWNmiss') || hasAnim('singUPmiss') || hasAnim('singRIGHTmiss');
+		
+		// Refresh the dancing logic and trigger the first dance frame [cite: 133]
+		// recalculateDanceIdle();
+		dance();
+	}
+	
+	public function resetVariables()
+	{
+		// missingCharacter = false;
+		// if (missingText != null) missingText.kill();
+		
+		for (i in ['flipMode', 'stopIdle', 'skipDance', 'specialAnim', 'stunned'])
+			Reflect.setProperty(this, i, false);
+			
+		idleSuffix = '';
+		
+		setZoom(1);
+		
+		this.cameras = [FlxG.camera];
+		this.alpha = 1;
+		this.visible = true;
+		this.active = true;
+		this.exists = true;
+		this.alive = true;
+		
+		this.angle = 0;
+		this.scale.set(1, 1);
+		this.offset.set(0, 0);
+		this.origin.set(0, 0);
+		
+		this.velocity.set(0, 0);
+		this.acceleration.set(0, 0);
+		this.drag.set(0, 0);
+		this.maxVelocity.set(10000, 10000);
+		
+		this.angularVelocity = 0;
+		this.angularAcceleration = 0;
+		this.angularDrag = 0;
+		
+		this.color = 0xFFFFFF;
+		this.blend = null;
+		this.shader = null;
+		this.antialiasing = true;
+		
+		this.flipX = false;
+		this.flipY = false;
+		
+		this.scrollFactor.set(1, 1);
+		
+		if (this.animation != null)
+		{
+			this.animation.stop();
+			this.animation.curAnim = null;
+		}
+		
+		this.clipRect = null;
+		
+		this.updateHitbox();
+		
+		this.moves = true;
+		this.immovable = false;
+	}
+	
+	public function setZoom(Zoom:Float)
+	{
+		set_daZoom(Zoom);
 	}
 	
 	function genGhosts()

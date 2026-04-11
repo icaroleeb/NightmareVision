@@ -707,32 +707,35 @@ class PlayState extends MusicBeatState
 		// {
 		gf = new Character(gfVersion);
 		gf.scrollFactor.set(0.95, 0.95);
-		add(gf);
+		stage.add(gf);
 		gfGroup.parent = gf;
 		startCharacterPos(gf);
 		startCharacterScript(gf.curCharacter, gf);
+		gf.zIndex = gfGroup.zIndex;
 		
 		scripts.set('gf', gf);
-		scripts.set('gfGroup', gfGroup);
+		scripts.set('gfGroup', gf);
 		// }
 		
 		dad = new Character(SONG.player2);
 		startCharacterPos(dad);
 		startCharacterScript(dad.curCharacter, dad);
-		add(dad);
+		stage.add(dad);
 		dadGroup.parent = dad;
+		dad.zIndex = dadGroup.zIndex;
 		
 		boyfriend = new Character(SONG.player1, true);
 		startCharacterPos(boyfriend);
 		startCharacterScript(boyfriend.curCharacter, boyfriend);
-		add(boyfriend);
+		stage.add(boyfriend);
 		boyfriendGroup.parent = boyfriend;
+		boyfriend.zIndex = boyfriendGroup.zIndex;
 		
 		scripts.set('dad', dad);
-		scripts.set('dadGroup', dadGroup);
+		scripts.set('dadGroup', dad);
 		
 		scripts.set('boyfriend', boyfriend);
-		scripts.set('boyfriendGroup', boyfriendGroup);
+		scripts.set('boyfriendGroup', boyfriend);
 		
 		var camPos:FlxPoint = FlxPoint.get(girlfriendCameraOffset[0], girlfriendCameraOffset[1]);
 		if (gf != null)
@@ -888,7 +891,7 @@ class PlayState extends MusicBeatState
 		startCharacterScript(newCharacter.curCharacter, newCharacter);
 	}
 	
-	function startCharacterScript(name:String, char:Character):Void
+	public function startCharacterScript(name:String, char:Character):Void
 	{
 		var hscriptPath = FunkinScript.getPath('data/characters/$name');
 		if (!FunkinAssets.exists(hscriptPath, TEXT)) hscriptPath = FunkinScript.getPath('characters/$name');
@@ -898,6 +901,19 @@ class PlayState extends MusicBeatState
 			var script = initFunkinScript(hscriptPath);
 			
 			script.set('parent', char);
+		}
+	}
+	
+	public function stopCharacterScript(name:String):Void
+	{
+		var hscriptPath = FunkinScript.getPath('data/characters/$name');
+		if (!FunkinAssets.exists(hscriptPath, TEXT)) hscriptPath = FunkinScript.getPath('characters/$name');
+		
+		if (FunkinAssets.exists(hscriptPath, TEXT))
+		{
+			var script = removeFunkinScript(hscriptPath);
+			
+			script.set('parent', null);
 		}
 	}
 	
@@ -918,6 +934,22 @@ class PlayState extends MusicBeatState
 		Logger.log('script: ' + filePath + ' intialized');
 		if (script.exists('onLoad')) script.call('onLoad');
 		scripts.addScript(script);
+		return script;
+	}
+	
+	public function removeFunkinScript(filePath:String, ?name:String):Null<FunkinScript>
+	{
+		if (scripts.exists(name ?? filePath)) return null;
+		
+		var script:FunkinScript = FunkinScript.fromFile(filePath, name, scripts.scriptShareables);
+		if (script.__garbage)
+		{
+			script = FlxDestroyUtil.destroy(script);
+			return null;
+		}
+		Logger.log('script: ' + filePath + ' intialized');
+		if (script.exists('onDestroy')) script.call('onDestroy');
+		scripts.removeScript(script);
 		return script;
 	}
 	
@@ -1592,16 +1624,19 @@ class PlayState extends MusicBeatState
 				var charType:Int = 0;
 				switch (event.value1.toLowerCase())
 				{
-					case 'gf' | 'girlfriend' | '1':
+					case 'gf' | 'girlfriend':
 						charType = 2;
-					case 'dad' | 'opponent' | '0':
+					case 'dad' | 'opponent':
 						charType = 1;
 					default:
-						charType = Std.parseInt(event.value1);
-						if (Math.isNaN(charType)) charType = 0;
+						var val1:Int = Std.parseInt(event.value1);
+						if (Math.isNaN(val1)) val1 = 0;
+						charType = val1;
 				}
 				
-				addCharacterToList(event.value2, charType);
+				var newCharacter:String = event.value2;
+				// addCharacterToList(newCharacter, charType);
+				charactersToLoad.push(newCharacter);
 			default:
 				callEventScript(event.event, 'onPush', [event]);
 		}
@@ -2144,6 +2179,10 @@ class PlayState extends MusicBeatState
 				stage.remove(gfGroup);
 				stage.remove(dadGroup);
 				stage.remove(boyfriendGroup);
+				
+				stage.remove(gf);
+				stage.remove(dad);
+				stage.remove(boyfriend);
 				remove(stage);
 			}
 			
@@ -2173,38 +2212,129 @@ class PlayState extends MusicBeatState
 			stage.add(gfGroup);
 			stage.add(dadGroup);
 			stage.add(boyfriendGroup);
+			
+			stage.add(gf);
+			stage.add(dad);
+			stage.add(boyfriend);
 		}
 		
 		stage.scriptCallBack('onCreatePost');
 		
+		gf.zIndex = gfGroup.zIndex;
+		dad.zIndex = dadGroup.zIndex;
+		boyfriend.zIndex = boyfriendGroup.zIndex;
+		
 		refreshZ(stage);
 	}
 	
-	function changeCharacter(name:String, charType:Int):Void
+	// Combined them all into one function
+	public function changeCharacterAuto(target:String, id:String, ?flipped:Bool = false, ?dontDestroy:Bool = false)
 	{
-		switch (charType)
+		var charObj:Character;
+		var posX:Float = 0;
+		var posY:Float = 0;
+		var oldChar:String;
+		
+		switch (target)
 		{
-			case 0:
-				boyfriend = boyfriendGroup.change(name);
-			case 1:
-				dad = dadGroup.change(name);
-			case 2:
-				gf = gfGroup.change(name);
-				gf.danceEveryNumBeats *= gfSpeed;
+			case "boyfriend" | "bf":
+				charObj = boyfriend;
+			case "dad":
+				charObj = dad;
+			case "gf":
+				charObj = gf;
+			default:
+				return;
 		}
 		
-		scripts.set('boyfriend', boyfriend);
-		scripts.set('boyfriendGroup', boyfriendGroup);
+		oldChar = charObj.curCharacter;
 		
-		scripts.set('dad', dad);
-		scripts.set('dadGroup', dadGroup);
+		var animationName:String = "no way anyone have an anim name this big";
+		var animationFrame:Int = 0;
 		
-		scripts.set('gf', gf);
-		scripts.set('gfGroup', gfGroup);
+		try
+		{
+			if (charObj.getAnimName().startsWith("sing"))
+			{
+				animationName = charObj.getAnimName();
+				animationFrame = charObj.animCurFrame;
+			}
+		}
+		catch (e:Dynamic) {}
+		
+		stopCharacterScript(oldChar);
+		// stage.remove(charObj);
+		// charObj.destroy();
+		
+		// charObj = new Character(0, 0, id, (target == "boyfriend" ? !flipped : flipped));
+		charObj.resetCharacter(0, 0, id, (target == "boyfriend" ? !flipped : flipped)); // trying to not remove them
+		charObj.flipMode = flipped;
+		
+		switch (target)
+		{
+			case "boyfriend":
+				boyfriend = charObj;
+				posX = BF_X + charObj.playerPositionArray[0];
+				posY = BF_Y + charObj.playerPositionArray[1];
+				stage.add(charObj);
+				charObj.zIndex = boyfriendGroup.zIndex;
+			// boyfriendGroup.parent = boyfriend;
+			case "dad":
+				dad = charObj;
+				posX = DAD_X + charObj.positionArray[0];
+				posY = DAD_Y + charObj.positionArray[1];
+				stage.add(charObj);
+				charObj.zIndex = dadGroup.zIndex;
+			// dadGroup.parent = dad;
+			case "gf":
+				gf = charObj;
+				posX = GF_X + charObj.positionArray[0];
+				posY = GF_Y + charObj.positionArray[1];
+				stage.add(charObj);
+				charObj.zIndex = gfGroup.zIndex;
+				// gfGroup.parent = gf;
+		}
+		
+		charObj.x = posX;
+		charObj.y = posY;
+		
+		if (charObj.animOffsets.exists(animationName)) charObj.playAnim(animationName, true, false, animationFrame);
+		
+		charObj.pastCharacter = oldChar;
+		charObj.charName = target; // I don't know what this is for but I ported it to my new function as well
+		
+		scripts.set(target, charObj);
+		startCharacterScript(charObj.curCharacter, charObj);
 		
 		callHUDFunc(hud -> hud.onCharacterChange());
 	}
 	
+	/*
+		function changeCharacter(name:String, charType:Int):Void
+		{
+			switch (charType)
+			{
+				case 0:
+					boyfriend = boyfriendGroup.change(name);
+				case 1:
+					dad = dadGroup.change(name);
+				case 2:
+					gf = gfGroup.change(name);
+					gf.danceEveryNumBeats *= gfSpeed;
+			}
+			
+			scripts.set('boyfriend', boyfriend);
+			scripts.set('boyfriendGroup', boyfriendGroup);
+			
+			scripts.set('dad', dad);
+			scripts.set('dadGroup', dadGroup);
+			
+			scripts.set('gf', gf);
+			scripts.set('gfGroup', gfGroup);
+			
+			callHUDFunc(hud -> hud.onCharacterChange());
+		}
+	 */
 	public var stagesToLoad:Array<String> = [];
 	public var charactersToLoad:Array<String> = [];
 	public var imagesToLoad:Array<String> = [];
@@ -2407,60 +2537,23 @@ class PlayState extends MusicBeatState
 				var stageName:String = value1.toLowerCase();
 				changeStage(stageName);
 			case 'Change Character':
-				var charType:Int = 0;
-				switch (value1)
+				// var charType:Int = 0;
+				switch (value1.toLowerCase().trim())
 				{
-					case 'gf' | 'girlfriend':
-						charType = 2;
-					case 'dad' | 'opponent':
-						charType = 1;
-					default:
-						charType = Std.parseInt(value1);
-						if (Math.isNaN(charType)) charType = 0;
-				}
-				
-				var curChar:Character = boyfriend;
-				switch (charType)
-				{
-					case 2:
-						curChar = gf;
-					case 1:
-						curChar = dad;
-					case 0:
-						curChar = boyfriend;
-				}
-				
-				var newCharacter:String = value2;
-				var anim:String = '';
-				var frame:Int = 0;
-				if (newCharacter.startsWith(curChar.curCharacter) || curChar.curCharacter.startsWith(newCharacter))
-				{
-					if (!curChar.isAnimNull())
-					{
-						anim = curChar.getAnimName();
-						frame = curChar.animCurFrame;
-					}
-				}
-				
-				changeCharacter(value2, charType);
-				if (anim != '')
-				{
-					var char:Character = boyfriend;
-					switch (charType)
-					{
-						case 2:
-							char = gf;
-						case 1:
-							char = dad;
-						case 0:
-							char = boyfriend;
-					}
-					
-					if (!char.isAnimNull())
-					{
-						char.playAnim(anim, true);
-						char.animCurFrame = frame;
-					}
+					case 'gf' | 'girlfriend' | "2":
+						changeCharacterAuto("gf", value2);
+					case 'dad' | "opponent" | "1":
+						changeCharacterAuto("dad", value2);
+					case 'boyfriend' | 'bf' | "0":
+						changeCharacterAuto("boyfriend", value2);
+					default: // lua chars
+						{
+							// var char = modchartCharacters.get(value1);
+							// if (char != null)
+							// {
+							// makeLuaCharacter(value1, value2, char.isPlayer, false);
+							// }
+						}
 				}
 			case 'Change Scroll Speed':
 				if (songSpeedType == "constant") return;
