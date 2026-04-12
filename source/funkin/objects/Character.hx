@@ -34,6 +34,25 @@ class Character extends Bopper
 	 */
 	public var curCharacter:String = DEFAULT_CHARACTER;
 	
+	public var pastCharacter:String = DEFAULT_CHARACTER;
+	
+	public var charName:String = DEFAULT_CHARACTER;
+	public var isSpeakerChar:Bool = false;
+	public var flipMode:Bool = false;
+	
+	public var daZoom(default, set):Float = 1;
+	
+	function set_daZoom(value:Float):Float
+	{
+		daZoom = value;
+		var daValue:Float = value * jsonScale;
+		this.scale.set(daValue, daValue);
+		
+		// trace("fucked with");
+		
+		return value;
+	}
+	
 	public var holdTimer:Float = 0;
 	
 	public var animTimer:Float = 0;
@@ -52,6 +71,8 @@ class Character extends Bopper
 	 * if true, character uses `danceLeft` and `danceRight` instead of `idle`
 	 */
 	public var danceIdle:Bool = false;
+	
+	public var stopIdle:Bool = false;
 	
 	public var skipDance:Bool = false;
 	
@@ -76,15 +97,23 @@ class Character extends Bopper
 	
 	public var gameoverConfirmDeathSound:Null<String> = null;
 	
+	public var animationsArray:Array<AnimationInfo> = [];
+	
+	public var isPsychPlayer:Null<Bool>;
+	
 	/**
 	 * Character offsets defined by the json
 	 */
 	public var positionArray:Array<Float> = [0, 0];
 	
+	public var playerPositionArray:Array<Float> = [0, 0];
+	
 	/**
 	 * Camera offsets defined by the json
 	 */
 	public var cameraPosition:Array<Float> = [0, 0];
+	
+	public var playerCameraPosition:Array<Float> = [0, 0];
 	
 	/**
 	 * how much the ghost anims move when played
@@ -136,6 +165,12 @@ class Character extends Bopper
 	 */
 	public var healthColorArray:Array<Int> = [255, 0, 0];
 	
+	public var iconColor:String;
+	
+	public var curColor:FlxColor = 0xFFFFFFFF; // i was thinking about using this but nvm
+	
+	public var hasMissAnimations:Bool = false;
+	
 	public var healthColour:Int = FlxColor.RED;
 	
 	/**
@@ -143,16 +178,130 @@ class Character extends Bopper
 	 */
 	public var vSliceSustains = false;
 	
+	public var doMissThing:Bool = false;
+	
 	public function new(x:Float = 0, y:Float = 0, character:String = 'bf', isPlayer:Bool = false)
 	{
 		super(x, y);
 		
+		// animOffsets = new Map<String, Array<Dynamic>>();
+		// animPlayerOffsets = new Map<String, Array<Dynamic>>();
 		this.curCharacter = character;
 		this.isPlayer = isPlayer;
 		
 		genGhosts();
 		
 		loadFile(CharacterParser.fetchInfo(curCharacter));
+	}
+	
+	public function resetCharacter(x:Float, y:Float, ?character:String = 'bf', ?isPlayer:Bool = false) // beta
+	{
+		this.x = x;
+		this.y = y;
+		
+		resetVariables();
+		
+		this.isPlayer = isPlayer;
+		
+		changeCharacter(character);
+	}
+	
+	public function changeCharacter(character:String)
+	{
+		// Reset existing animation and offset maps to prevent data carryover [cite: 127]
+		animationsArray = [];
+		// animOffsets = [];
+		// animPlayerOffsets = [];
+		curCharacter = character;
+		pastCharacter = character;
+		isPsychPlayer = false;
+		
+		curColor = 0xFFFFFFFF;
+		
+		// Attempt to parse the JSON content and load the character data [cite: 131]
+		try
+		{
+			loadFile(CharacterParser.fetchInfo(curCharacter));
+		}
+		catch (e:Dynamic)
+		{
+			trace('Error loading character file of "$character": $e');
+		}
+		
+		// Reset character state flags [cite: 132]
+		for (i in ['flipMode', 'stopIdle', 'skipDance', 'specialAnim', 'stunned'])
+		{
+			Reflect.setProperty(this, i, false);
+		}
+		
+		// Determine if the character has unique "miss" animations [cite: 133]
+		hasMissAnimations = hasAnim('singLEFTmiss') || hasAnim('singDOWNmiss') || hasAnim('singUPmiss') || hasAnim('singRIGHTmiss');
+		
+		// Refresh the dancing logic and trigger the first dance frame [cite: 133]
+		// recalculateDanceIdle();
+		dance();
+	}
+	
+	public function resetVariables()
+	{
+		// missingCharacter = false;
+		// if (missingText != null) missingText.kill();
+		
+		for (i in ['flipMode', 'stopIdle', 'skipDance', 'specialAnim', 'stunned'])
+			Reflect.setProperty(this, i, false);
+			
+		idleSuffix = '';
+		
+		setZoom(1);
+		
+		this.cameras = [FlxG.camera];
+		this.alpha = 1;
+		this.visible = true;
+		this.active = true;
+		this.exists = true;
+		this.alive = true;
+		
+		this.angle = 0;
+		this.scale.set(1, 1);
+		this.offset.set(0, 0);
+		this.origin.set(0, 0);
+		
+		this.velocity.set(0, 0);
+		this.acceleration.set(0, 0);
+		this.drag.set(0, 0);
+		this.maxVelocity.set(10000, 10000);
+		
+		this.angularVelocity = 0;
+		this.angularAcceleration = 0;
+		this.angularDrag = 0;
+		
+		this.color = 0xFFFFFF;
+		this.blend = null;
+		this.shader = null;
+		this.antialiasing = true;
+		
+		this.flipX = false;
+		this.flipY = false;
+		
+		this.scrollFactor.set(1, 1);
+		
+		if (this.animation != null)
+		{
+			this.animation.stop();
+			this.animation.curAnim = null;
+		}
+		
+		this.clipRect = null;
+		
+		this.updateHitbox();
+		
+		this.moves = true;
+		this.immovable = false;
+	}
+	
+	public function setZoom(Zoom:Float)
+	{
+		set_daZoom(Zoom);
 	}
 	
 	function genGhosts()
@@ -171,20 +320,34 @@ class Character extends Bopper
 	// clean this up
 	public function loadFile(json:CharacterInfo)
 	{
-		animOffsets.clear();
-		scale.set(1, 1);
-		updateHitbox();
+		/*
+			animOffsets.clear();
+			scale.set(1, 1);
+			updateHitbox();
+		 */
+		
+		if (json.isPlayerChar || json.is_player_char)
+		{
+			isPsychPlayer = json.isPlayerChar || json.is_player_char;
+		}
 		
 		this.jsonScale = json.scale;
-		this.positionArray = json.position;
-		this.cameraPosition = json.camera_position;
+		
+		var playerPosition:Array<Float> = CharacterFileUtil.getPlayerPosition(json);
+		
+		this.positionArray = ((!debugMode && isPlayer && playerPosition != null) ? playerPosition : json.position);
+		this.playerPositionArray = (playerPosition != null ? playerPosition : json.position);
+		
+		this.cameraPosition = (isPlayer && json.player_camera_position != null ? json.player_camera_position : json.camera_position);
+		this.playerCameraPosition = (json.player_camera_position != null ? json.player_camera_position : json.camera_position);
 		
 		this.healthIcon = json.healthicon;
 		this.vSliceSustains = json.vslice_sustains;
 		this.singDuration = json.sing_duration;
 		this.noAntialiasing = json.no_antialiasing;
 		
-		this.flipX = (json.flip_x != isPlayer);
+		// this.flipX = (json.flip_x != isPlayer);
+		this.flipX = !!json.flip_x;
 		this.originalFlipX = (json.flip_x == true);
 		this.imageFile = json.image;
 		
@@ -200,6 +363,8 @@ class Character extends Bopper
 		this.scalableOffsets = json.scalableOffsets ?? false;
 		
 		this.isPlayerInEditor = json._editor_isPlayer;
+		
+		var itHasPlayerOfs:Bool = false;
 		
 		loadAtlas(imageFile);
 		
@@ -224,16 +389,16 @@ class Character extends Bopper
 		this.animations = json.animations;
 		if (animations != null && animations.length > 0)
 		{
-			for (anim in animations)
+			for (a in animations)
 			{
-				final animAnim:String = '' + anim.anim;
-				final animName:String = '' + anim.name;
-				final animFps:Int = anim.fps;
-				final animLoop:Bool = !!anim.loop; // Bruh
-				final animIndices:Array<Int> = anim.indices ?? [];
+				final animAnim:String = '' + a.anim;
+				final animName:String = '' + a.name;
+				final animFps:Int = a.fps;
+				final animLoop:Bool = !!a.loop; // Bruh
+				final animIndices:Array<Int> = a.indices ?? [];
 				
-				final flipX = anim.flipX ?? false;
-				final flipY = anim.flipY ?? false;
+				final flipX = a.flipX ?? false;
+				final flipY = a.flipY ?? false;
 				
 				if (animIndices.length > 0)
 				{
@@ -244,10 +409,20 @@ class Character extends Bopper
 					addAnimByPrefix(animAnim, animName, animFps, animLoop, flipX, flipY);
 				}
 				
-				if (anim.offsets != null && anim.offsets.length > 1)
+				var offsets:Array<Int> = a.offsets;
+				var playerOffsets:Array<Int> = (a.playerOffsets != null && a.playerOffsets.length > 1) ? a.playerOffsets : a.offsets;
+				var swagOffsets:Array<Int> = offsets;
+				
+				if (isPlayer && playerOffsets != null && playerOffsets.length > 1)
 				{
-					addOffset(anim.anim, anim.offsets[0], anim.offsets[1]);
+					swagOffsets = playerOffsets;
 				}
+				
+				if (swagOffsets != null && swagOffsets.length > 1) addOffset(a.anim, swagOffsets[0], swagOffsets[1]);
+				else addOffset(a.anim, 0, 0);
+				
+				if (playerOffsets != null && playerOffsets.length > 1) addPlayerOffset(a.anim, playerOffsets[0], playerOffsets[1]);
+				else addPlayerOffset(a.anim, 0, 0);
 			}
 		}
 		else
@@ -256,7 +431,26 @@ class Character extends Bopper
 		}
 		
 		dance(forceDance);
+		
+		if (isPlayer)
+		{
+			flipX = !flipX;
+			
+			// Doesn't flip for BF, since his are already in the right place???
+			if (!curCharacter.startsWith('bf') && !isPsychPlayer) flipAnims();
+		}
+		
+		if (!isPlayer)
+		{
+			// Flip for just bf
+			if (curCharacter.startsWith('bf') || isPsychPlayer) flipAnims();
+		}
+		
+		// if (isPlayer && !curCharacter.startsWith('bf') && !itHasPlayerOfs) flipAnims(); // fuck it.
 	}
+	
+	@:allow(states.editors.CharacterEditorState)
+	public var isAnimateAtlas(default, null):Bool = false;
 	
 	override function update(elapsed:Float)
 	{
@@ -322,6 +516,12 @@ class Character extends Bopper
 		super.update(elapsed);
 	}
 	
+	inline function predictCharacterIsPlayer(name:String)
+	{ // if i remove this later, is because people didn't liked it. -Ryiuu
+		if (name.startsWith('bf') || name.startsWith('bf-') || name.endsWith('-player') || name.endsWith('-playable')) return true;
+		else return false;
+	}
+	
 	override function draw()
 	{
 		if (ghostsEnabled)
@@ -343,12 +543,64 @@ class Character extends Bopper
 		super.dance(forced);
 	}
 	
-	override function playAnim(animToPlay:String, isForced:Bool = false, isReversed:Bool = false, frame:Int = 0)
+	var missed:Bool = false;
+	
+	override public function playAnim(AnimName:String, Force:Bool = false, Reversed:Bool = false, Frame:Int = 0):Void
 	{
 		specialAnim = false;
-		animToPlay += animSuffix;
+		var useFallbackMiss:Bool = false;
 		
-		super.playAnim(animToPlay, isForced, isReversed, frame);
+		// Reimplemented the fall back for the alt sprites
+		if (AnimName.endsWith('alt') && !hasAnim(AnimName))
+		{
+			AnimName = AnimName.split('-')[0];
+		}
+		
+		if (AnimName.endsWith('miss') && !hasAnim(AnimName))
+		{
+			AnimName = AnimName.substr(0, AnimName.length - 4);
+			useFallbackMiss = true;
+		}
+		
+		// trace(anim.exists(AnimName));
+		
+		animation.play(AnimName, Force, Reversed, Frame);
+		_lastPlayedAnimation = AnimName;
+		
+		if (hasAnim(AnimName))
+		{
+			var daOffset = animOffsets.get(AnimName);
+			if (isPlayer) daOffset = animPlayerOffsets.get(AnimName);
+			
+			if ((animOffsets.exists(AnimName) && !isPlayer) || (animPlayerOffsets.exists(AnimName) && isPlayer)) offset.set(daOffset[0] * daZoom, daOffset[1] * daZoom);
+			else offset.set(0, 0);
+			
+			if (curCharacter.startsWith('gf-') || curCharacter == 'gf')
+			{
+				if (AnimName == 'singLEFT') danced = true;
+				else if (AnimName == 'singRIGHT') danced = false;
+				
+				if (AnimName == 'singUP' || AnimName == 'singDOWN') danced = !danced;
+			}
+			
+			if (useFallbackMiss)
+			{
+				var realCurColor:FlxColor = curColor;
+				color = CoolUtil.blendColors(curColor, 0xFFCFAFFF);
+				curColor = realCurColor;
+			}
+			else if (color != curColor && !hasMissAnimations)
+			{
+				color = curColor;
+			}
+			
+			// super.playAnim(AnimName, Force, Reversed, Frame);
+		}
+	}
+	
+	public function quickAnimAdd(name:String, anim:String)
+	{
+		addAnimByPrefix(name, anim, 24, false);
 	}
 	
 	override function onBeatHit(beat:Int)
@@ -430,6 +682,60 @@ class Character extends Bopper
 		}
 	}
 	
+	public function flipAnims()
+	{
+		if (isAnimateAtlas)
+		{
+			for (anim in animations)
+			{
+				if (anim.anim.contains("singRIGHT"))
+				{
+					var suffix = anim.anim.split('singRIGHT')[1];
+					var singRightName = 'singRIGHT' + suffix;
+					var singLeftName = 'singLEFT' + suffix;
+					
+					@:privateAccess {
+						// FlxAnimate uses a different internal map structure
+						var oldRightAnim = this.anim._animations.get(singRightName);
+						var oldLeftAnim = this.anim._animations.get(singLeftName);
+						
+						if (oldRightAnim != null && oldLeftAnim != null)
+						{
+							this.anim._animations.set(singRightName, oldLeftAnim);
+							this.anim._animations.set(singLeftName, oldRightAnim);
+						}
+					}
+				}
+			}
+		}
+		else
+		{
+			for (anim in animations)
+			{
+				if (anim.anim.contains("singRIGHT"))
+				{
+					var suffix = anim.anim.split('singRIGHT')[1];
+					var rightAnim = 'singRIGHT' + suffix;
+					var leftAnim = 'singLEFT' + suffix;
+					
+					if (animation.getByName(rightAnim) != null && animation.getByName(leftAnim) != null)
+					{
+						var oldRightFrames = animation.getByName(rightAnim).frames;
+						animation.getByName(rightAnim).frames = animation.getByName(leftAnim).frames;
+						animation.getByName(leftAnim).frames = oldRightFrames;
+					}
+				}
+			}
+		}
+	}
+	
+	var _lastPlayedAnimation:String;
+	
+	inline public function getAnimationName():String
+	{
+		return _lastPlayedAnimation;
+	}
+	
 	override function destroy()
 	{
 		if (ghostTweenGrp != null && ghostTweenGrp.length > 0)
@@ -443,5 +749,13 @@ class Character extends Bopper
 		doubleGhosts = FlxDestroyUtil.destroyArray(doubleGhosts);
 		
 		super.destroy();
+	}
+}
+
+class CharacterFileUtil
+{
+	public static function getPlayerPosition(charData:CharacterInfo):Array<Float>
+	{
+		return charData.player_position != null ? charData.player_position : charData.player_position;
 	}
 }

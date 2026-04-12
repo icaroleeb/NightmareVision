@@ -68,6 +68,36 @@ class ScriptGroup implements IFlxDestroyable
 		return true;
 	}
 	
+	public function removeScript(script:Null<FunkinScript>):Bool
+	{
+		if (script == null || !exists(script.name)) return false;
+		
+		try
+		{
+			if (script.exists("onDestroy")) script.call("onDestroy");
+			
+			@:privateAccess
+			{
+				final interp:InterpEx = cast script.interp;
+				
+				interp.sharedFields = null;
+				interp.parent = null;
+				
+				// if (Reflect.hasField(script, 'stop')) script.stop();
+			}
+			
+			members.remove(script);
+			flixel.util.FlxDestroyUtil.destroy(script);
+			
+			return true;
+		}
+		catch (e:Dynamic)
+		{
+			Logger.log("Error removing script " + script.name + ": " + e, ERROR);
+			return false;
+		}
+	}
+	
 	@:inheritDoc(funkin.scripts.FunkinScript.set)
 	public function set(varName:String, arg:Dynamic)
 	{
