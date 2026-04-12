@@ -74,7 +74,7 @@ class ScriptGroup implements IFlxDestroyable
 		
 		try
 		{
-			script.call("onDestroy");
+			if (script.exists("onDestroy")) script.call("onDestroy");
 			
 			@:privateAccess
 			{
