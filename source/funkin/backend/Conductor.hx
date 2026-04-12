@@ -75,7 +75,13 @@ class Conductor
 			if (time >= change.songTime) lastChange = change;
 		}
 		
-		return (lastChange ?? {stepTime: 0, songTime: 0, bpm: bpm, stepCrotchet: stepCrotchet});
+		return (lastChange ??
+			{
+				stepTime: 0,
+				songTime: 0,
+				bpm: bpm,
+				stepCrotchet: stepCrotchet
+			});
 	}
 	
 	public static function getBPMFromStep(step:Float)
@@ -86,7 +92,13 @@ class Conductor
 			if (change.stepTime <= step) lastChange = change;
 		}
 		
-		return (lastChange ?? {stepTime: 0, songTime: 0, bpm: bpm, stepCrotchet: stepCrotchet});
+		return (lastChange ??
+			{
+				stepTime: 0,
+				songTime: 0,
+				bpm: bpm,
+				stepCrotchet: stepCrotchet
+			});
 	}
 	
 	public inline static function stepToSeconds(step:Float):Float
@@ -124,8 +136,14 @@ class Conductor
 	public static function mapBPMChanges(song:Song)
 	{
 		bpmChangeMap.resize(0);
-		bpmChangeMap.push({stepTime: 0, songTime: 0, bpm: song.bpm, stepCrotchet: calculateCrochet(song.bpm) / 4});
-		
+		bpmChangeMap.push(
+			{
+				stepTime: 0,
+				songTime: 0,
+				bpm: song.bpm,
+				stepCrotchet: calculateCrochet(song.bpm) / 4
+			});
+			
 		var curBPM:Float = song.bpm;
 		var totalSteps:Int = 0;
 		var totalPos:Float = 0;

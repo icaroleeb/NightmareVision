@@ -560,7 +560,7 @@ class PlayState extends MusicBeatState
 		if (file == null) return;
 		
 		defaultCamZoom = file.defaultZoom;
-		if (isChangeStage) FlxG.camera.zoom = file.defaultZoom;
+		if (!isChangeStage) FlxG.camera.zoom = file.defaultZoom;
 		
 		BF_X = file.boyfriend[0];
 		BF_Y = file.boyfriend[1];
@@ -756,7 +756,7 @@ class PlayState extends MusicBeatState
 			if (gf != null) gf.visible = false;
 		}
 		
-		Conductor.songPosition = -5000;
+		Conductor.songPosition = -Conductor.crotchet * 5 + Conductor.offset;
 		
 		playFields = new FlxTypedGroup<PlayField>();
 		add(playFields);
@@ -794,7 +794,7 @@ class PlayState extends MusicBeatState
 		botplayTxt.setFormat(Paths.DEFAULT_FONT, 32, FlxColor.WHITE, CENTER, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
 		botplayTxt.scrollFactor.set();
 		botplayTxt.borderSize = 1.25;
-		botplayTxt.visible = cpuControlled;
+		botplayTxt.visible = false;
 		if (ClientPrefs.downScroll) botplayTxt.y = FlxG.height - botplayTxt.height - 55;
 		add(botplayTxt);
 		
@@ -968,7 +968,7 @@ class PlayState extends MusicBeatState
 			final character = (lane == 1 ? dad : boyfriend);
 			final isPlayer = (lane != 1);
 			
-			final auto = (lane != 0 || cpuControlled);
+			final auto = (lane != 0);
 			
 			var strums = new PlayField(0, 0, SONG.keys, character, isPlayer, auto, lane, arrowSkins[lane]);
 			// strums.scale = NoteUtil.getSkinFromID(lane).scale;
@@ -2027,7 +2027,7 @@ class PlayState extends MusicBeatState
 			if (FlxG.keys.justPressed.SIX)
 			{
 				cpuControlled = !cpuControlled;
-				botplayTxt.visible = !botplayTxt.visible;
+				// botplayTxt.visible = !botplayTxt.visible;
 			}
 		}
 		
@@ -2885,7 +2885,7 @@ class PlayState extends MusicBeatState
 		
 		var field:PlayField = note.playField;
 		
-		if (!practiceMode && !cpuControlled && !(field?.autoPlayed ?? false))
+		if (!practiceMode && !(field?.autoPlayed ?? false))
 		{
 			if (defaultScoreAddition) songScore += judgeScore;
 			if (!note.ratingDisabled)
@@ -3103,7 +3103,16 @@ class PlayState extends MusicBeatState
 		
 		if (lastBeatHit >= curBeat) return;
 		
-		if (generatedMusic) notes.sort(FlxSort.byY, ClientPrefs.downScroll ? FlxSort.ASCENDING : FlxSort.DESCENDING);
+		if (generatedMusic)
+		{
+			notes.sort(function(order:Int, Obj1:Note, Obj2:Note):Int {
+				var val1 = Obj1.isSustainNote ? 0 : 1;
+				var val2 = Obj2.isSustainNote ? 0 : 1;
+				
+				if (val1 != val2) return FlxSort.byValues(order, val1, val2);
+				return FlxSort.byY(order, Obj1, Obj2);
+			});
+		}
 		
 		handleBoppers(curBeat);
 		

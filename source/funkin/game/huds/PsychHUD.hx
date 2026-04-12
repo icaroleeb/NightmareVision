@@ -140,7 +140,7 @@ class PsychHUD extends BaseHUD
 			+ (!parent.instakillOnMiss ? ' $textDivider Misses: ${misses}' : "")
 			+ ' $textDivider Accuracy: ${str}';
 			
-		if (!missed && !parent.cpuControlled) doScoreBop();
+		if (!missed) doScoreBop();
 		
 		scoreTxt.text = '${tempScore}\n';
 	}
@@ -153,7 +153,13 @@ class PsychHUD extends BaseHUD
 		
 		scoreTextTwn?.cancel();
 		scoreTxt.scale.set(1.075, 1.075);
-		scoreTextTwn = FlxTween.tween(scoreTxt.scale, {x: 1, y: 1}, 0.2);
+		scoreTextTwn = FlxTween.tween(scoreTxt.scale, {x: 1, y: 1}, 0.2,
+			{
+				ease: FlxEase.smootherStepOut, // i like smootherStepOut
+				onComplete: function(twn:FlxTween) {
+					scoreTextTwn = null;
+				}
+			});
 	}
 	
 	public function updateIconsPosition()
