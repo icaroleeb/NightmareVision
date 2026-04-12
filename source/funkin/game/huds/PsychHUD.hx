@@ -64,7 +64,7 @@ class PsychHUD extends BaseHUD
 		healthBar.leftToRight = false;
 		healthBar.scrollFactor.set();
 		healthBar.visible = !ClientPrefs.hideHud;
-		healthBar.alphaMultipler = ClientPrefs.healthBarAlpha;
+		healthBar.alpha = ClientPrefs.healthBarAlpha;
 		
 		reloadHealthBarColors();
 		add(healthBar);
@@ -72,13 +72,13 @@ class PsychHUD extends BaseHUD
 		iconP1 = new HealthIcon(parent.boyfriend.healthIcon, true);
 		iconP1.y = healthBar.y - 75;
 		iconP1.visible = !ClientPrefs.hideHud;
-		iconP1.alphaMultipler = ClientPrefs.healthBarAlpha;
+		iconP1.alpha = ClientPrefs.healthBarAlpha;
 		add(iconP1);
 		
 		iconP2 = new HealthIcon(parent.dad.healthIcon, false);
 		iconP2.y = healthBar.y - 75;
 		iconP2.visible = !ClientPrefs.hideHud;
-		iconP2.alphaMultipler = ClientPrefs.healthBarAlpha;
+		iconP2.alpha = ClientPrefs.healthBarAlpha;
 		add(iconP2);
 		
 		scoreTxt = new FlxText(0, healthBar.y + 40, FlxG.width, "", 20);
@@ -218,8 +218,11 @@ class PsychHUD extends BaseHUD
 	
 	public function updateIconsAnimation()
 	{
-		iconP1.updateIconAnim(healthBar.percent * 0.01);
-		iconP2.updateIconAnim((100 - healthBar.percent) * 0.01);
+		var isHealthBarPercentLessThan20:Bool = healthBar.percent < 20;
+		var isHealthBarPercentGreaterThan80:Bool = healthBar.percent > 80;
+		
+		iconP1.animation.curAnim.curFrame = (isHealthBarPercentLessThan20 ? 1 : ((isHealthBarPercentGreaterThan80) ? 2 : 0));
+		iconP2.animation.curAnim.curFrame = (isHealthBarPercentGreaterThan80 ? 1 : ((isHealthBarPercentLessThan20) ? 2 : 0));
 	}
 	
 	public function reloadHealthBarColors()

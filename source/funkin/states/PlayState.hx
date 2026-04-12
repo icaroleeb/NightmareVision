@@ -810,6 +810,8 @@ class PlayState extends MusicBeatState
 		if (genNotesBeforeCountdown) generatePlayfields();
 		generateSong(SONG.song);
 		
+		if (cpuControlled) set_cpuControlled(true); // botplay kinda bug on gameplay settings
+		
 		#if FLX_DEBUG
 		FlxG.watch.addFunction('Conductor: ', () -> Conductor.songPosition);
 		FlxG.watch.addFunction('SongTime: ', () -> FlxStringUtil.formatTime(Conductor.songPosition / 1000)
