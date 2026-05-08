@@ -4,11 +4,9 @@ name: Binaries
 on: # Workflow triggers on both when a commit is pushed, or when a pull request is made.
     push:
         branches: 
-            - main 
             - dev
     pull_request:
         branches:
-            - main
             - dev
     
     workflow_dispatch: # Run workflow manually from the actions tab.
@@ -24,7 +22,9 @@ jobs: # FUCK MY LIFE BROOOOO
         runs-on: windows-latest
 
         steps:
-            - uses: actions/checkout@v4
+            - uses: actions/checkout@v6.0.2
+              with:
+                submodules: true
             - uses: krdlab/setup-haxe@master
 
               with: 
@@ -36,11 +36,13 @@ jobs: # FUCK MY LIFE BROOOOO
                 haxelib install hxcpp > nul --quiet
                 haxelib install hxpkg --quiet
                 haxelib run hxpkg install
+                haxelib run lime rebuild hxcpp windows -clean
+                haxelib run lime rebuild lime windows -clean
                 haxelib run lime rebuild cpp
             - name: Compile build
               run: haxelib run lime build windows -D ${{inputs.buildFlags}}
             - name: Publish artifact
-              uses: actions/upload-artifact@v4
+              uses: actions/upload-artifact@v7.0.0
               with:
                 name: NightmareVision (Windows)
                 path: export/release/windows/bin
@@ -49,7 +51,9 @@ jobs: # FUCK MY LIFE BROOOOO
         runs-on: ubuntu-22.04
 
         steps:
-            - uses: actions/checkout@v4
+            - uses: actions/checkout@v6.0.2
+              with:
+                submodules: true
             - uses: krdlab/setup-haxe@master
 
               with:
@@ -67,7 +71,7 @@ jobs: # FUCK MY LIFE BROOOOO
             - name: Compile build
               run: haxelib run lime build Project.xml linux -D ${{inputs.buildFlags}}
             - name: Publish artifact
-              uses: actions/upload-artifact@v4
+              uses: actions/upload-artifact@v7.0.0
               with:
                 name: NightmareVision (Linux)
                 path: 'export/release/linux/bin'

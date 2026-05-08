@@ -44,7 +44,8 @@ import funkin.states.editors.*;
 import funkin.game.modchart.*;
 import funkin.game.StoryMeta;
 import funkin.game.Countdown;
-import funkin.backend.InputSystem;
+import funkin.input.InputSystem;
+import funkin.input.InputEvent;
 import funkin.audio.SyncedFlxSoundGroup;
 #if VIDEOS_ALLOWED
 import funkin.video.FunkinVideoSprite;
@@ -52,9 +53,6 @@ import funkin.video.FunkinVideoSprite;
 
 class PlayState extends MusicBeatState
 {
-	public static var STRUM_X:Float = 42; // redundant
-	public static var STRUM_X_MIDDLESCROLL:Float = -278; // redundant
-	
 	public static var meta:Null<SongMetaData> = null; // bad?
 	
 	public static var SONG:Null<Song> = null;
@@ -62,9 +60,6 @@ class PlayState extends MusicBeatState
 	public static var storyMeta:StoryMeta = new StoryMeta();
 	
 	public static var isStoryMode:Bool = false;
-	
-	// how big to stretch the pixel art assets
-	public static var daPixelZoom:Float = 6;
 	
 	/**
 	 * Static reference to the state. used for other classes to reference
@@ -213,7 +208,7 @@ class PlayState extends MusicBeatState
 	public var gf:Character;
 	
 	/**
-		Reference to the current girlfriend
+		Reference to the current boyfriend
 	**/
 	public var boyfriend:Character;
 	
@@ -513,9 +508,6 @@ class PlayState extends MusicBeatState
 	var debugKeysChart:Array<FlxKey>;
 	var debugKeysCharacter:Array<FlxKey>;
 	
-	// Less laggy controls
-	public var keysArray:Array<Dynamic>;
-	
 	// public var controlHoldArray:Array<Dynamic>;
 	
 	/**
@@ -615,13 +607,6 @@ class PlayState extends MusicBeatState
 		debugKeysChart = ClientPrefs.copyKey(ClientPrefs.keyBinds.get('debug_1'));
 		debugKeysCharacter = ClientPrefs.copyKey(ClientPrefs.keyBinds.get('debug_2'));
 		PauseSubState.songName = null; // Reset to default
-		
-		keysArray = [
-			ClientPrefs.copyKey(ClientPrefs.keyBinds.get('note_left')),
-			ClientPrefs.copyKey(ClientPrefs.keyBinds.get('note_down')),
-			ClientPrefs.copyKey(ClientPrefs.keyBinds.get('note_up')),
-			ClientPrefs.copyKey(ClientPrefs.keyBinds.get('note_right'))
-		];
 		
 		songStartCallback = startCountdown;
 		songEndCallback = endSong;
@@ -759,13 +744,20 @@ class PlayState extends MusicBeatState
 		Conductor.songPosition = -Conductor.crotchet * 5 + Conductor.offset;
 		
 		playFields = new FlxTypedGroup<PlayField>();
-		add(playFields);
 		
 		notes = new FlxTypedGroup<Note>();
-		add(notes);
+		
+		if (ClientPrefs.underlayType == 'Screen Dim')
+		{
+			screenDim = new FlxSprite().makeGraphic(1, 1, FlxColor.BLACK);
+			screenDim.alpha = ClientPrefs.underlayOpacity;
+			screenDim.scrollFactor.set();
+			screenDim.camera = camHUD;
+			add(screenDim);
+		}
 		
 		playHUD = new funkin.game.huds.PsychHUD(this);
-		insert(members.indexOf(playFields), playHUD); // Data told me to do this
+		add(playHUD);
 		playHUD.cameras = [camHUD];
 		
 		meta = SongMeta.getFromSong();
@@ -854,9 +846,9 @@ class PlayState extends MusicBeatState
 		// Updating Discord Rich Presence.
 		resetDiscordRPC();
 		
-		input = new InputSystem(onKeyPress, onKeyRelease, keysArray);
-		
-		if (!ClientPrefs.controllerMode) {}
+		input = new InputSystem(controls);
+		input.addEventListener(InputEvent.INPUT_PRESSED, onInputPress);
+		input.addEventListener(InputEvent.INPUT_RELEASED, onInputRelease);
 		
 		Conductor.safeZoneOffset = (ClientPrefs.safeFrames / 60) * 1000;
 		
@@ -959,6 +951,8 @@ class PlayState extends MusicBeatState
 	
 	var splashLayering:Array<Dynamic> = [];
 	
+	public var screenDim:Null<FlxSprite>; // this doesnt need to be apart of playstate
+	
 	public function generatePlayfields()
 	{
 		if (generatedFields) return;
@@ -996,7 +990,7 @@ class PlayState extends MusicBeatState
 			
 			inline function actualMiss()
 			{
-				if (combo > 5 && gf != null && gf.animOffsets.exists('sad')) gf.playAnim('sad');
+				if (combo > 5 && gf != null && gf.animOffsets.exists('sad')) gf.playAnimForDuration('sad', 1, true);
 				combo = 0;
 				audio.miss();
 				
@@ -1268,7 +1262,8 @@ class PlayState extends MusicBeatState
 		
 		final songName:String = Paths.sanitize(SONG.song);
 		
-		var file:String = Paths.json('$songName/data/events');
+		var file:String = Paths.json('$songName/charts/events');
+		if (!FunkinAssets.exists(file)) file = Paths.json('$songName/data/events');
 		
 		inline function makeEv(time:Float, ev:String, v1:String, v2:String)
 		{
@@ -1347,10 +1342,15 @@ class PlayState extends MusicBeatState
 		
 		audio.volume = 0;
 		
+		audio.play();
+		audio.pause();
+		
 		scripts.set('vocals', audio);
 		scripts.set('inst', audio.inst);
 		
-		// layering for notesplash stuff
+		add(playFields);
+		add(notes);
+		
 		for (i in splashLayering)
 			add(i);
 			
@@ -1478,7 +1478,7 @@ class PlayState extends MusicBeatState
 					sustainNote.gfNote = swagNote.gfNote;
 					sustainNote.noteType = swagNote.noteType;
 					
-					if (ClientPrefs.guitarHeroSustains && !swagNote.hitCausesMiss && !swagNote.canMiss) sustainNote.blockHit = true; // stops you from holding a note without key pressing first
+					if (!swagNote.hitCausesMiss && !swagNote.canMiss) sustainNote.blockHit = true; // stops you from holding a note without key pressing first
 					if (!sustainNote.alive) break;
 					
 					sustainNote.ID = unspawnNotes.length;
@@ -1770,7 +1770,7 @@ class PlayState extends MusicBeatState
 		scripts.call('onUpdate', [elapsed]);
 		
 		super.update(elapsed);
-		input.update(elapsed);
+		input.update();
 		
 		if (controls.PAUSE && startedCountdown && canPause)
 		{
@@ -2016,6 +2016,13 @@ class PlayState extends MusicBeatState
 				cpuControlled = !cpuControlled;
 				// botplayTxt.visible = !botplayTxt.visible;
 			}
+		}
+		
+		if (ClientPrefs.underlayType == 'Screen Dim' && screenDim != null)
+		{
+			screenDim.scale.set(FlxG.width * camHUD.zoom, FlxG.height * camHUD.zoom);
+			screenDim.updateHitbox();
+			screenDim.screenCenter();
 		}
 		
 		scripts.call('onUpdatePost', [elapsed]);
@@ -2885,17 +2892,16 @@ class PlayState extends MusicBeatState
 		callHUDFunc(hud -> hud.popUpScore(daRating, combo, note)); // only pushing the image bc is anyone ever gonna need anything else???
 	}
 	
-	function onKeyPress(event:KeyboardEvent):Void
+	function onInputPress(event:InputEvent):Void
 	{
 		if (cpuControlled || paused || !startedCountdown) return;
 		
-		var eventKey:FlxKey = event.keyCode;
-		var key:Int = input.getKeyFromEvent(eventKey);
-		
-		if (key <= -1 || (!FlxG.keys.checkStatus(eventKey, JUST_PRESSED) && !ClientPrefs.controllerMode)) return;
+		var key:Int = event.noteData;
 		
 		var prevTime:Float = Conductor.songPosition;
 		if (audio.inst?.playing) Conductor.songPosition = @:privateAccess audio.inst._channel.position;
+		// subtract latency
+		Conductor.songPosition -= lime.system.System.getTimer() - event.timer;
 		
 		if (generatedMusic && !endingSong)
 		{
@@ -2953,14 +2959,14 @@ class PlayState extends MusicBeatState
 		Conductor.songPosition = prevTime;
 		
 		scripts.call('onKeyPress', [key]);
+		scripts.call('onInputPress', [key]);
 	}
 	
-	function onKeyRelease(event:KeyboardEvent):Void
+	function onInputRelease(event:InputEvent):Void
 	{
-		var eventKey:FlxKey = event.keyCode;
-		var key:Int = input.getKeyFromEvent(eventKey);
+		var key:Int = event.noteData;
 		
-		if (startedCountdown && !paused && key > -1)
+		if (startedCountdown && !paused)
 		{
 			for (field in playFields.members)
 			{
@@ -2974,6 +2980,7 @@ class PlayState extends MusicBeatState
 				}
 			}
 			scripts.call('onKeyRelease', [key]);
+			scripts.call('onInputRelease', [key]);
 		}
 	}
 	
@@ -2981,12 +2988,6 @@ class PlayState extends MusicBeatState
 	function keyShit():Void
 	{
 		// HOLDING
-		var up = controls.NOTE_UP;
-		var right = controls.NOTE_RIGHT;
-		var down = controls.NOTE_DOWN;
-		var left = controls.NOTE_LEFT;
-		var dodge = controls.NOTE_DODGE;
-		
 		if (startedCountdown && !boyfriend.stunned && generatedMusic)
 		{
 			// rewritten inputs???
@@ -2997,27 +2998,42 @@ class PlayState extends MusicBeatState
 				{
 					if (daNote.isSustainNote
 						&& !daNote.blockHit
-						&& FlxG.keys.anyPressed(keysArray[daNote.noteData])
+						&& (input.inputPressed(daNote.noteData) || (daNote.wasGoodHit && daNote.parent.coyoteProgress < 1))
 						&& Conductor.songPosition >= daNote.strumTime
 						&& !daNote.tooLate
-						&& !daNote.wasGoodHit) daNote.playField.onNoteHit.dispatch(daNote, daNote.playField);
+						&& !daNote.wasGoodHit)
+					{
+						daNote.parent.coyoteProgress = 0;
+						daNote.playField.onNoteHit.dispatch(daNote, daNote.playField);
+					}
 				}
 				
-				if (ClientPrefs.guitarHeroSustains)
+				// hold note drop
+				if (!daNote.playField.autoPlayed && daNote.playField.inControl && daNote.playField.playerControls)
 				{
-					// hold note drop
-					
-					if (!daNote.playField.autoPlayed && daNote.playField.inControl && daNote.playField.playerControls)
+					if (daNote.isSustainNote
+						&& !daNote.blockHit
+						&& !daNote.ignoreNote
+						&& !input.inputPressed(daNote.noteData)
+						&& !endingSong
+						&& !daNote.wasGoodHit)
 					{
-						if (daNote.isSustainNote
-							&& !daNote.blockHit
-							&& !daNote.ignoreNote
-							&& !FlxG.keys.anyPressed(keysArray[daNote.noteData])
-							&& !endingSong
-							&& (daNote.tooLate || !daNote.wasGoodHit))
+						if (daNote.tooLate)
 						{
 							daNote.playField.onNoteMiss.dispatch(daNote, daNote.playField);
-						}
+							
+							combo = 0; // Repeat the miss code unconditionally because the actualMiss signal callback comes after the function that makes notes unable to miss
+							audio.miss();
+							
+							if (instakillOnMiss) doDeathCheck(true);
+							
+							songMisses++;
+							if (!practiceMode) songScore -= 10;
+							
+							totalPlayed++;
+							RecalculateRating(true);
+						};
+						else daNote.parent.coyoteProgress += FlxG.elapsed / 0.45;
 					}
 				}
 			});
