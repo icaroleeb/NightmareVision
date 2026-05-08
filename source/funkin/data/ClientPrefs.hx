@@ -1,12 +1,27 @@
 package funkin.data;
 
+import flixel.input.gamepad.FlxGamepadInputID;
+
 import funkin.backend.DebugDisplay;
 
 import flixel.input.keyboard.FlxKey;
 import flixel.util.FlxSave;
 
-import funkin.backend.Controls.KeyboardScheme;
-import funkin.backend.Controls;
+import funkin.input.Controls.KeyboardScheme;
+import funkin.input.Controls;
+
+enum abstract UnderlayType(String) to String from String
+{
+	public var FIELD = 'Lane Underlay';
+	public var SCREEN = 'Screen Dim';
+	
+	// @:to
+	public static function toArray():Array<String> // dont want to jump to options states to update
+	{
+		// granted its a bit overkill to even do this for 2 options but i dunno remove it if u dont want it //or maybe i will another time
+		return [FIELD, SCREEN];
+	}
+}
 
 /**
  * to add new save options, make a static var with the `@saveVar` meta and itll be handled on its own
@@ -63,11 +78,11 @@ class ClientPrefs
 	
 	@saveVar public static var camFollowsCharacters:Bool = true;
 	
+	@saveVar public static var underlayType:String = 'Lane Underlay';
+	
+	@saveVar public static var underlayOpacity:Float = 0.0;
+	
 	// gameplay ------------------------------------------------------------------------//
-	@saveVar public static var guitarHeroSustains:Bool = true;
-	
-	@saveVar public static var controllerMode:Bool = false;
-	
 	@saveVar public static var mechanics:Bool = true;
 	
 	@saveVar public static var modcharts:Bool = true;
@@ -179,7 +194,7 @@ class ClientPrefs
 	
 	// keybinds ------------------------------------------------------------------------//
 	// Every key has two binds, add your key bind down here and then add your control on options/ControlsSubState.hx and Controls.hx
-	@saveVar(false, false) public static var keyBinds:Map<String, Array<FlxKey>> = [
+	@saveVar(false, false) public static var keyBinds:Map<Action, Array<FlxKey>> = [
 		// Key Bind, Name for ControlsSubState
 		'note_left' => [A, LEFT],
 		'note_down' => [S, DOWN],
@@ -201,11 +216,21 @@ class ClientPrefs
 		'debug_2' => [EIGHT, NONE]
 	];
 	
-	public static var defaultKeys:Map<String, Array<FlxKey>> = null;
+	public static var defaultKeys:Map<Action, Array<FlxKey>> = null;
+	
+	public static var gamepadBinds:Map<Action, Array<FlxGamepadInputID>> = [
+		'note_up' => [DPAD_UP, Y],
+		'note_down' => [DPAD_DOWN, A],
+		'note_left' => [DPAD_LEFT, X],
+		'note_right' => [DPAD_RIGHT, B],
+	];
+	
+	public static var defaultGamepadBinds:Map<Action, Array<FlxGamepadInputID>> = null;
 	
 	public static function loadDefaultKeys()
 	{
 		defaultKeys = keyBinds.copy();
+		defaultGamepadBinds = gamepadBinds.copy();
 	}
 	
 	// Editor Colours ------------------------------------------------------------------------//
@@ -253,6 +278,7 @@ class ClientPrefs
 		var save:FlxSave = new FlxSave();
 		save.bind('controls_v2');
 		save.data.customControls = keyBinds;
+		save.data.customGamepadControls = gamepadBinds;
 		save.close();
 	}
 	
@@ -295,10 +321,8 @@ class ClientPrefs
 		
 		var save:FlxSave = new FlxSave();
 		save.bind('controls_v2');
-		if (save != null && save.data.customControls != null)
-		{
-			CoolUtil.copyMapValues(save.data.customControls, keyBinds);
-		}
+		if (save != null && save.data.customControls != null) CoolUtil.copyMapValues(save.data.customControls, keyBinds);
+		if (save != null && save.data.customGamepadControls != null) CoolUtil.copyMapValues(save.data.customGamepadControls, gamepadBinds);
 		reloadControls();
 		
 		save = FlxDestroyUtil.destroy(save);
@@ -328,7 +352,11 @@ class ClientPrefs
 	public static function reloadControls()
 	{
 		Controls.instance.setKeyboardScheme(KeyboardScheme.Solo);
-		
+		final gamepads = Controls.instance.gamepadsAdded.copy();
+		Controls.instance.removeGamepad();
+		for (id in gamepads)
+			Controls.instance.addDefaultGamepad(id);
+			
 		ClientPrefs.muteKeys = copyKey(keyBinds.get('volume_mute'));
 		ClientPrefs.volumeDownKeys = copyKey(keyBinds.get('volume_down'));
 		ClientPrefs.volumeUpKeys = copyKey(keyBinds.get('volume_up'));

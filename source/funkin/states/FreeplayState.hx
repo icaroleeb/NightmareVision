@@ -30,7 +30,7 @@ class FreeplayState extends MusicBeatState
 	public var debugBG:FlxSprite;
 	public var debugTxt:FlxText;
 	
-	public var songs:Array<SongMetadata> = [];
+	public var songs:Array<FreeplaySong> = [];
 	
 	public var freeplayTabs:Array<FreeplayTab> = [];
 	
@@ -55,9 +55,8 @@ class FreeplayState extends MusicBeatState
 	public var intendedRating:Float = 0;
 	
 	public var grpSongs:FlxTypedGroup<Alphabet>;
+	public var grpIcons:FlxTypedGroup<HealthIcon>;
 	public var curPlaying:Bool = false;
-	
-	public var iconArray:Array<HealthIcon> = [];
 	
 	public var bg:FlxSprite;
 	public var intendedColor:Int;
@@ -86,7 +85,8 @@ class FreeplayState extends MusicBeatState
 		
 		initStateScript();
 		
-		scriptGroup.set('SongMetadata', SongMetadata);
+		scriptGroup.set('SongMetadata', FreeplaySong); // backwards compat bs ig
+		scriptGroup.set('FreeplaySong', FreeplaySong);
 		scriptGroup.set('WeekData', WeekData);
 		
 		bg = new FlxSprite().loadGraphic(Paths.image('menus/menuDesat'));
@@ -95,6 +95,9 @@ class FreeplayState extends MusicBeatState
 		
 		grpSongs = new FlxTypedGroup<Alphabet>();
 		add(grpSongs);
+		
+		grpIcons = new FlxTypedGroup<HealthIcon>();
+		add(grpIcons);
 		
 		scoreText = new FlxText(0, 5, FlxG.width - 6, "", 32);
 		scoreText.setFormat(Paths.DEFAULT_FONT, 32, FlxColor.WHITE, RIGHT);
@@ -197,9 +200,7 @@ class FreeplayState extends MusicBeatState
 			var icon:HealthIcon = new HealthIcon(songs[i].songCharacter);
 			icon.sprTracker = songText;
 			
-			// using a FlxGroup is too much fuss!
-			iconArray.push(icon);
-			add(icon);
+			grpIcons.add(icon);
 		}
 		
 		changeSelection();
@@ -226,7 +227,7 @@ class FreeplayState extends MusicBeatState
 			if (meta.freeplayColor != null) color = meta.freeplayColor;
 		}
 		
-		songs.push(new SongMetadata(songName, displayName, weekName, icon, FlxColor.fromString(color)));
+		songs.push(new FreeplaySong(songName, displayName, weekName, icon, FlxColor.fromString(color)));
 	}
 	
 	function weekIsLocked(name:String):Bool
@@ -282,6 +283,7 @@ class FreeplayState extends MusicBeatState
 				if (FlxG.keys.pressed.SHIFT) changeTab(-1);
 				else changeTab(1);
 				
+				changeDiff();
 				changeSelection();
 			}
 		}
@@ -330,6 +332,13 @@ class FreeplayState extends MusicBeatState
 			return;
 		}
 		
+		if (FlxG.keys.justPressed.SEVEN)
+		{
+			persistentUpdate = false;
+			openSubState(new funkin.states.editors.SongMetaEditor(songs[curSelected].songName));
+			return;
+		}
+		
 		if (controls.UI_LEFT_P) changeDiff(-1);
 		else if (controls.UI_RIGHT_P) changeDiff(1);
 		else if (controls.UI_UP_P || controls.UI_DOWN_P) changeDiff();
@@ -374,7 +383,9 @@ class FreeplayState extends MusicBeatState
 		{
 			persistentUpdate = false;
 			
-			final songRet = PlayState.prepareForSong(songs[curSelected].songName, curDifficulty, false);
+			final songName = Paths.sanitize(songs[curSelected].songName.toLowerCase());
+			
+			final songRet = PlayState.prepareForSong(songName, curDifficulty, false);
 			
 			if (songRet != null)
 			{
@@ -462,20 +473,27 @@ class FreeplayState extends MusicBeatState
 				tabs.push(
 					{
 						title: i.folder,
+						directory: i.folder,
 						fromWeeks: fromWeeks,
-						songs: []
+						songs: [],
 					});
 			}
 			
-			for (tab in tabs)
-			{
-				trace(tab);
+			for (tab in tabs){
+				tab.directory = i.folder;
 				freeplayTabs.push(tab);
 			}
 		}
 	}
 	
-	function getSongMeta(song:String):Null<SongMetaData> return SongMeta.getFromPath(Paths.json('$song/data/meta'));
+	function getSongMeta(song:String):Null<SongMetaData>
+	{
+		var path = SongMeta.getFromPath(Paths.json('$song/data/meta'));
+		
+		if (path == null) path = SongMeta.getFromPath(Paths.json('$song/meta'));
+		
+		return path;
+	}
 	
 	function getFreeplayData(modFolder:String):Null<FreeplayData>
 	{
@@ -511,7 +529,8 @@ class FreeplayState extends MusicBeatState
 					addSong(name, [name, icon, color]);
 				}
 			}
-		}
+		} else 
+			Mods.currentModDirectory = tab.directory; 
 		for (song in tab.songs)
 			addSong(song);
 	}
@@ -550,12 +569,8 @@ class FreeplayState extends MusicBeatState
 			FlxTween.color(bg, 1, bg.color, intendedColor);
 		}
 		
-		for (i in 0...iconArray.length)
-		{
-			iconArray[i].alpha = 0.6;
-		}
-		
-		iconArray[curSelected].alpha = 1;
+		grpIcons.forEach((icon) -> icon.alpha = 0.6);
+		grpIcons.members[curSelected].alpha = 1;
 		
 		for (idx => item in grpSongs.members)
 		{
@@ -611,7 +626,10 @@ class FreeplayState extends MusicBeatState
 	{
 		if (diff != 0) FlxG.sound.play(Paths.sound('scrollMenu'), 0.4);
 		
-		currentTab = FlxMath.wrap(currentTab + diff, 0, freeplayTabs.length - 1);
+		var len = freeplayTabs.length - 1;
+		if (len < 0) len = 0;
+		
+		currentTab = FlxMath.wrap(currentTab + diff, 0, len);
 		tabText.text = "[ " + (freeplayTabs[currentTab].title ?? 'Unknown') + " ]";
 		
 		clearSongs();
@@ -632,9 +650,12 @@ class FreeplayState extends MusicBeatState
 			grpSongs.clear();
 		}
 		
-		iconArray = FlxDestroyUtil.destroyArray(iconArray);
-		
-		iconArray = [];
+		if (grpIcons != null)
+		{
+			grpIcons.forEach(icon -> icon?.destroy());
+			
+			grpIcons.clear();
+		}
 	}
 	
 	private function positionHighscore()
@@ -650,7 +671,7 @@ class FreeplayState extends MusicBeatState
 	}
 }
 
-class SongMetadata
+class FreeplaySong
 {
 	public var displayName:String = "";
 	public var songName:String = "";
@@ -679,6 +700,11 @@ typedef FreeplayData =
 typedef FreeplayTab =
 {
 	var title:String;
+	
+	// if you load a mod freshly without any week jsons the currentModDirectory isn't set
+	// you dont have to define this in the mod folder but like you can i guess
+	var directory:String;
+	
 	var ?fromWeeks:Array<String>;
 	var ?songs:Array<String>;
 }

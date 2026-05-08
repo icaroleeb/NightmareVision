@@ -7,39 +7,21 @@ import funkin.game.IUiSprite;
 @:nullSafety
 class HealthIcon extends FlxSprite implements IUiSprite
 {
-	/**
-	 * Optional parented sprite
-	 * 
-	 * If set `this` will follow the set parents position
-	 */
 	public var sprTracker:Null<FlxSprite> = null;
-	
-	/**
-	 * Additional offsets for the icon
-	 * 
-	 * Used when `sprTracker` is not null.
-	 */
-	public var sprOffsets(default, null):FlxPoint = FlxPoint.get(10, -30);
-	
-	/**
-	 * The icons current character name
-	 */
-	public var characterName(default, null):String = '';
+	public var isPlayer:Bool = false;
+	public var hasWinning:Bool = true;
+	public var char:String = '';
 	
 	@:allow(funkin.states.editors.ChartEditorState)
 	var updateOffset:Bool = true;
 	
-	var iconOffsets:Array<Float> = [0, 0];
-	
-	/**
-	 * Used to decide if the icon will be flipped
-	 */
-	var isPlayer:Bool = false;
-	
-	/** 
-	 * Used for dividing icon based on how many frames it has
-	**/
-	public var frameCount(default, set):Int = 2;
+	public function new(char:String = 'face', isPlayer:Bool = false, ?allowGPU:Bool = true)
+	{
+		super();
+		this.isPlayer = isPlayer;
+		changeIcon(char, allowGPU);
+		scrollFactor.set();
+	}
 	
 	public var alphaMultipler(default, set):Float = 1;
 	
@@ -57,27 +39,7 @@ class HealthIcon extends FlxSprite implements IUiSprite
 		return super.set_alpha(v);
 	}
 	
-	public function set_frameCount(value:Int)
-	{
-		frameCount = value;
-		changeIcon(characterName, true);
-		
-		return value;
-	}
-	
-	/**
-	 * Bool that controls whether or not the frame setting is handled automatically
-	**/
-	public var updateFrames:Bool = true;
-	
-	public function new(char:String = 'bf', isPlayer:Bool = false)
-	{
-		super();
-		this.isPlayer = isPlayer;
-		changeIcon(char);
-	}
-	
-	override function update(elapsed:Float):Void
+	override function update(elapsed:Float)
 	{
 		super.update(elapsed);
 		
@@ -87,9 +49,9 @@ class HealthIcon extends FlxSprite implements IUiSprite
 	/**
 	 * Attempts to load a new icon by file name
 	 */
-	public function changeIcon(char:String, forced:Bool = false):Void
+	public function changeIcon(char:String, forced:Bool = false):HealthIcon
 	{
-		if (this.characterName == char && !forced) return;
+		if (this.characterName == char && !forced) return this;
 		
 		this.characterName = char;
 		
@@ -113,32 +75,22 @@ class HealthIcon extends FlxSprite implements IUiSprite
 		animation.play(char); // i do plan on adding more functionality to icons at a later date
 		
 		antialiasing = char.endsWith('-pixel') ? false : ClientPrefs.globalAntialiasing;
+		
+		return this;
 	}
 	
 	override function updateHitbox()
 	{
 		super.updateHitbox();
-		
-		if (updateOffset)
+		if (autoAdjustOffset)
 		{
 			offset.x = iconOffsets[0];
 			offset.y = iconOffsets[1];
 		}
 	}
 	
-	override function destroy()
+	public function getCharacter():String
 	{
-		sprOffsets = FlxDestroyUtil.put(sprOffsets);
-		super.destroy();
-	}
-	
-	/**
-	 * Updates the current animation based on a value from 0 - 1.
-	 */
-	public inline function updateIconAnim(health:Float):Void
-	{
-		if (!updateFrames) return;
-		
-		animation.frameIndex = health < 0.2 ? 1 : 0;
+		return char;
 	}
 }
