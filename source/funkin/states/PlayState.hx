@@ -50,6 +50,7 @@ import funkin.audio.SyncedFlxSoundGroup;
 #if VIDEOS_ALLOWED
 import funkin.video.FunkinVideoSprite;
 #end
+import funkin.backend.tools.PreloadUtil;
 
 class PlayState extends MusicBeatState
 {
@@ -213,6 +214,11 @@ class PlayState extends MusicBeatState
 	public var boyfriend:Character;
 	
 	/**
+		for lua characters.
+	**/
+	public var modchartCharacters:Map<String, Character> = new Map<String, Character>(); // tryna get this working on psych -- future me here: its working!
+	
+	/**
 		Reference to the player stage X position
 	**/
 	public var BF_X:Float = 770;
@@ -279,7 +285,7 @@ class PlayState extends MusicBeatState
 	/**
 	 * Target the game camera follows
 	 */
-	var camFollow:FlxObject;
+	public var camFollow:FlxObject;
 	
 	/**
 	 * Previous cameras target. used in story mode for a more seamless transition
@@ -801,6 +807,8 @@ class PlayState extends MusicBeatState
 		
 		if (genNotesBeforeCountdown) generatePlayfields();
 		generateSong(SONG.song);
+		PreloadUtil.grabStuffToPreload();
+		PreloadUtil.preload();
 		
 		if (cpuControlled) set_cpuControlled(true); // botplay kinda buggy on start with gameplay settings
 		
@@ -1606,7 +1614,7 @@ class PlayState extends MusicBeatState
 				skin = FlxDestroyUtil.destroy(skin);
 			case 'Change Stage':
 				var stageName:String = event.value1.toLowerCase();
-				stagesToLoad.push(stageName);
+				PreloadUtil.stagesToLoad.push(stageName);
 			case 'Change Character':
 				var charType:Int = 0;
 				switch (event.value1.toLowerCase())
@@ -1623,7 +1631,7 @@ class PlayState extends MusicBeatState
 				
 				var newCharacter:String = event.value2;
 				// addCharacterToList(newCharacter, charType);
-				charactersToLoad.push(newCharacter);
+				PreloadUtil.charactersToLoad.push(newCharacter);
 			default:
 				callEventScript(event.event, 'onPush', [event]);
 		}
@@ -2158,7 +2166,7 @@ class PlayState extends MusicBeatState
 		// char.y += char.positionArray[1];
 	}
 	
-	function changeStage(newStage:String, isPreload:Bool = false):Void
+	public function changeStage(newStage:String, isPreload:Bool = false):Void
 	{
 		if (stage != null)
 		{
@@ -2329,11 +2337,6 @@ class PlayState extends MusicBeatState
 			callHUDFunc(hud -> hud.onCharacterChange());
 		}
 	 */
-	public var stagesToLoad:Array<String> = [];
-	public var charactersToLoad:Array<String> = [];
-	public var imagesToLoad:Array<String> = [];
-	public var soundsToLoad:Array<String> = []; // why not?
-	
 	public function triggerEventNote(eventName:String, value1:String, value2:String):Void
 	{
 		switch (eventName)

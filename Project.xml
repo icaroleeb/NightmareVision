@@ -73,6 +73,7 @@
     <haxelib name="flixel-addons"/>
     <haxelib name="flixel-ui" version="2.6.4"/>
 
+    <haxelib name="linc_luajit" version="git"/>
     <haxelib name="hscript-iris" version="git"/>
 
     <haxelib name="flixel-animate"/>

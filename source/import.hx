@@ -38,6 +38,11 @@ import funkin.states.*;
 import funkin.objects.BGSprite;
 import funkin.backend.MusicBeatState;
 
+// restored lua beta
+import llua.*;
+
+import llua.Lua;
+
 using flixel.util.FlxArrayUtil;
 
 using StringTools;

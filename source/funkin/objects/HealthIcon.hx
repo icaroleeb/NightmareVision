@@ -1,88 +1,79 @@
 package funkin.objects;
 
-import flixel.FlxSprite;
-
 import funkin.game.IUiSprite;
 
-@:nullSafety
-class HealthIcon extends FlxSprite implements IUiSprite
+class HealthIcon extends FlxSprite
 {
-	public var sprTracker:Null<FlxSprite> = null;
+	public var sprTracker:FlxSprite;
 	public var isPlayer:Bool = false;
 	public var hasWinning:Bool = true;
 	public var char:String = '';
 	
-	@:allow(funkin.states.editors.ChartEditorState)
-	var updateOffset:Bool = true;
-	
-	public function new(char:String = 'face', isPlayer:Bool = false, ?allowGPU:Bool = true)
+	public function new(char:String = 'face', isPlayer:Bool = false)
 	{
 		super();
 		this.isPlayer = isPlayer;
-		changeIcon(char, allowGPU);
+		changeIcon(char);
 		scrollFactor.set();
-	}
-	
-	public var alphaMultipler(default, set):Float = 1;
-	
-	function set_alphaMultipler(v:Float):Float
-	{
-		alphaMultipler = FlxMath.bound(v, 0, 1);
-		set_alpha(alpha);
-		return alphaMultipler;
-	}
-	
-	override function set_alpha(v:Float)
-	{
-		v = FlxMath.bound(v, 0, 1);
-		v *= alphaMultipler;
-		return super.set_alpha(v);
 	}
 	
 	override function update(elapsed:Float)
 	{
 		super.update(elapsed);
 		
-		if (sprTracker != null) setPosition(sprTracker.x + sprTracker.width + sprOffsets.x, sprTracker.y + sprOffsets.y);
+		if (sprTracker != null)
+		{
+			setPosition(sprTracker.x + sprTracker.width + 12, sprTracker.y - 30);
+		}
 	}
 	
-	/**
-	 * Attempts to load a new icon by file name
-	 */
-	public function changeIcon(char:String, forced:Bool = false):HealthIcon
+	private var iconOffsets:Array<Float> = [0, 0];
+	
+	public function changeIcon(char:String)
 	{
-		if (this.characterName == char && !forced) return this;
-		
-		this.characterName = char;
-		
-		var name:String = '${Paths.UI_PREFIX}icons/$char';
-		if (!Paths.fileExists('images/' + name + '.png')) name = '${Paths.UI_PREFIX}icons/icon-' + char; // Older versions of psych engine's support
-		if (!Paths.fileExists('images/' + name + '.png')) name = '${Paths.UI_PREFIX}icons/icon-face'; // Prevents crash from missing icon
-		if (!Paths.fileExists('images/' + name + '.png')) name = 'UI/icons/icon-face'; // ultimate fallback incase icon-face doesnt exist in ur custom UI folder
-		
-		final graphic = Paths.image(name, null, false);
-		
-		loadGraphic(graphic, true, Math.floor(graphic.width / frameCount), Math.floor(graphic.height));
-		iconOffsets[0] = (width - 150) / 2;
-		iconOffsets[1] = (width - 150) / 2;
-		updateHitbox();
-		
-		var c = [];
-		for (i in 0...frameCount)
-			c.push(i);
+		if (this.char != char)
+		{
+			var curAnimation:Int = 0;
+			if (this.animation.curAnim != null) curAnimation = this.animation.curAnim.curFrame; // quick patch so icons doesn't return to their default animation after changing it
+			var hasWin:Bool = false;
+			var singleIcon:Bool = false;
 			
-		animation.add(char, c, 0, false, isPlayer);
-		animation.play(char); // i do plan on adding more functionality to icons at a later date
-		
-		antialiasing = char.endsWith('-pixel') ? false : ClientPrefs.globalAntialiasing;
-		
-		return this;
+			var name:String = '${Paths.UI_PREFIX}icons/$char';
+			if (!Paths.fileExists('images/' + name + '.png')) name = '${Paths.UI_PREFIX}icons/icon-' + char; // Older versions of psych engine's support
+			if (!Paths.fileExists('images/' + name + '.png')) name = '${Paths.UI_PREFIX}icons/icon-face'; // Prevents crash from missing icon
+			if (!Paths.fileExists('images/' + name + '.png')) name = 'UI/icons/icon-face'; // ultimate fallback incase icon-face doesnt exist in ur custom UI folder
+			
+			var graphic = Paths.image(name, null, false);
+			if (graphic.width == 450) hasWin = true;
+			else if (graphic.width == 150) singleIcon = true;
+			var iSize:Float = Math.round(graphic.width / graphic.height);
+			var realSize:Float = (hasWin ? 3 : (singleIcon ? 1 : iSize));
+			loadGraphic(graphic, true, Math.floor(graphic.width / realSize), Math.floor(graphic.height));
+			iconOffsets[0] = (width - 150) / realSize;
+			iconOffsets[1] = (height - 150) / iSize;
+			updateHitbox();
+			
+			var animArray:Array<Int> = [];
+			for (i in 0...3)
+				animArray.push((i <= frames.frames.length - 1 ? i : 0)); // 0: Default | 1: Losing | 2: Winning
+			animation.add(char, animArray, 0, false, isPlayer);
+			animation.play(char);
+			this.animation.curAnim.curFrame = curAnimation;
+			this.char = char;
+			this.hasWinning = hasWin;
+			
+			if (char.endsWith('-pixel')) antialiasing = false;
+			else antialiasing = ClientPrefs.globalAntialiasing;
+		}
 	}
+	
+	@:allow(funkin.states.editors.ChartEditorState)
+	public var updateOffset:Bool = true;
 	
 	override function updateHitbox()
 	{
 		super.updateHitbox();
-		if (autoAdjustOffset)
+		if (updateOffset)
 		{
 			offset.x = iconOffsets[0];
 			offset.y = iconOffsets[1];
